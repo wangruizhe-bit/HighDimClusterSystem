@@ -50,13 +50,23 @@ jobs:
         shell: pwsh
         run: |
           python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--self-check'], timeout=120)"
-      - name: Upload runnable Windows program
+      - name: Check bundled sklearn native libraries before upload
+        run: python -m tools.verify_release --original dist/HighDimClusterSystem
+      - name: Upload runnable Windows program including hidden DLL directories
         uses: actions/upload-artifact@v4
         with:
-          name: HighDimClusterSystem-V1.0-Windows
+          name: HighDimClusterSystem-V1.0-Windows-Fixed
           path: dist/HighDimClusterSystem/
+          include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
+      - name: Download the actual published Windows attachment for verification
+        uses: actions/download-artifact@v4
+        with:
+          name: HighDimClusterSystem-V1.0-Windows-Fixed
+          path: artifact-check/
+      - name: Compare downloaded artifact and start its EXE
+        run: python -m tools.verify_release --original dist/HighDimClusterSystem --downloaded artifact-check
       - name: Upload genuine UI screenshot archive
         uses: actions/upload-artifact@v4
         with:

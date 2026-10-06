@@ -145,3 +145,16 @@ def test_excel_sheet_name_rules():
     assert first != second
     assert len(first) <= 31 and len(second) <= 31
     assert not any(c in first for c in "[]:*?/\\")
+
+
+def test_failed_excel_export_preserves_existing_file(tmp_path, catalog, monkeypatch):
+    destination = tmp_path / "existing.xlsx"
+    destination.write_bytes(b"previous content remains intact")
+
+    def broken_writer(*args, **kwargs):
+        raise OSError("simulated disk or export failure")
+
+    monkeypatch.setattr(pd, "ExcelWriter", broken_writer)
+    with pytest.raises(OSError):
+        export_excel(catalog, destination)
+    assert destination.read_bytes() == b"previous content remains intact"

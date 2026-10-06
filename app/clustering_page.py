@@ -243,8 +243,6 @@ class ClusterPage(QWidget):
         self.session.cluster_results.append(result)
         if len(self.session.cluster_results) > self.MAX_HISTORY:
             del self.session.cluster_results[:-self.MAX_HISTORY]
-        self.session.cluster_changed.emit()
-
         self.summary.setText(
             f"已完成 {result.label}：{result.n_samples} 行样本，"
             f"{len(result.columns)} 个特征，识别 {result.n_clusters} 个有效簇、"
@@ -266,6 +264,8 @@ class ClusterPage(QWidget):
         ]))
         self._plot(result)
         self.tabs.setCurrentIndex(0)
+        self.session.cluster_changed.emit()
+        self.session.results_changed.emit()
 
     def _error(self, message):
         if self._submitted_revision == self.session.data_revision:

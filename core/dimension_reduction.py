@@ -83,6 +83,10 @@ def fit_reduction(
         raise ValueError("降维分析至少需要 2 个数值变量。")
     if type(n_components) is not int or n_components not in (2, 3):
         raise ValueError("目标维度必须是 2 或 3。")
+    if method == "mds" and n_samples > 3000:
+        raise ValueError("度量 MDS 需要生成完整距离矩阵，当前最多支持 3000 个样本；请先抽样。")
+    if method == "tsne" and n_samples > 10000:
+        raise ValueError("为防止占用过多内存，t-SNE 当前最多支持 10000 个样本；请先抽样。")
     if method == "factor" and n_components > min(n_features, n_samples - 1):
         raise ValueError("因子数不能超过变量数或样本数减一。")
     if type(random_state) is not int or not 0 <= random_state <= 2147483647:
@@ -137,8 +141,9 @@ def fit_reduction(
         original_distances = pairwise_distances(x, metric=mds_distance)
         model = MDS(
             n_components=n_components,
-            metric=True,
-            dissimilarity="precomputed",
+            metric_mds=True,
+            metric="precomputed",
+            init="random",
             max_iter=mds_max_iter,
             n_init=mds_n_init,
             random_state=random_state,

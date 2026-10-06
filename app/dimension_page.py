@@ -226,8 +226,10 @@ class ReductionPage(QWidget):
                              else "尚无可分析的数值变量，请先导入数据。")
         n = len(self.session.data.current_data) if self.session.data.current_data is not None else 0
         if n > 1:
+            # 先判断旧值，再缩小控件范围，避免被动截断后误当成合理默认值。
+            previous = self.perplexity.value()
             self.perplexity.setMaximum(max(.1, n - .1))
-            if self.perplexity.value() >= n:
+            if previous >= n:
                 self.perplexity.setValue(min(30., max(.5, n / 3)))
         else:
             self.perplexity.setMaximum(100000)

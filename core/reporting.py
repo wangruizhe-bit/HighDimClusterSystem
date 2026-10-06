@@ -62,7 +62,15 @@ def build_catalog(
         if frame is not None and not frame.empty:
             items.append(ResultItem("feature_statistics", f"特征统计 · {title}",
                                     "特征统计", frame.copy(deep=True)))
+
     if pca is not None:
+        items.append(ResultItem("pca_parameters", "PCA · 运行参数", "PCA",
+                                _numbers_as_frame({
+                                    "样本数": pca.sample_count, "数值变量": ", ".join(pca.columns),
+                                    "是否标准化": "是" if pca.standardized else "否",
+                                    "选择策略": pca.selection, "主成分数量": pca.chosen_components,
+                                    "累计方差贡献率(%)": round(pca.retained_variance * 100, 6),
+                                }, title="参数")))
         for ident, name, frame in [
             ("variance", "特征值与方差贡献率", pca.eigen_table),
             ("loadings", "相关载荷", pca.loading_table),
@@ -75,6 +83,13 @@ def build_catalog(
     for index, result in enumerate(reductions, 1):
         prefix = f"reduce_{index}"
         text = f"第 {index} 次降维 · {result.method_label} · {result.dimensions}维"
+        items.append(ResultItem(prefix + "_parameters", text + " 参数", "降维",
+                                _numbers_as_frame({
+                                    "方法": result.method_label, "样本数": result.sample_count,
+                                    "变量": ", ".join(result.columns), "目标维数": result.dimensions,
+                                    "是否标准化": "是" if result.standardized else "否",
+                                    **result.parameters,
+                                }, title="参数")))
         items.append(ResultItem(prefix + "_coordinates", text + " 坐标", "降维",
                                 result.coordinates.copy(deep=True)))
         if result.factor_loadings is not None:
@@ -88,6 +103,13 @@ def build_catalog(
     for index, result in enumerate(clusters, 1):
         prefix = f"cluster_{index}"
         text = f"第 {index} 次聚类 · {result.label}"
+        items.append(ResultItem(prefix + "_parameters", text + " 参数", "聚类",
+                                _numbers_as_frame({
+                                    "算法": result.label, "样本数": result.n_samples,
+                                    "变量": ", ".join(result.columns),
+                                    "有效簇数": result.n_clusters, "噪声数": result.n_noise,
+                                    **result.parameters,
+                                }, title="参数"), result.score_note))
         for part, name, frame in [
             ("labels", "样本标签", result.labels),
             ("counts", "簇大小", result.counts),
@@ -100,6 +122,15 @@ def build_catalog(
         items.append(ResultItem(prefix + "_metrics", text + " · 质量指标", "聚类",
                                 _numbers_as_frame(result.metrics), result.score_note))
     if k_search is not None:
+        items.append(ResultItem("k_search_parameters", "K 值扫描 · 参数", "K 值辅助选择",
+                                _numbers_as_frame({
+                                    "样本数": k_search.n_samples,
+                                    "变量": ", ".join(k_search.columns),
+                                    "是否标准化": "是" if k_search.standardized else "否",
+                                    "随机种子": k_search.seed,
+                                    "迭代上限": k_search.max_iter,
+                                    "建议 K": k_search.suggested_k,
+                                }, title="参数")))
         items.append(ResultItem("k_search", "K 值扫描 · SSE 与轮廓系数", "K 值辅助选择",
                                 k_search.scores.copy(deep=True),
                                 f"最大轮廓系数对应 K={k_search.suggested_k}，仅作为辅助推荐。"))

@@ -123,3 +123,13 @@ def test_tsne_tiny_perplexity_rejected(dataset):
         fit_reduction(dataset, method="tsne", tsne_perplexity=np.nan)
     with pytest.raises(ValueError):
         fit_reduction(dataset, method="tsne", columns=["A", "kind"])
+
+
+def test_mds_tsne_memory_safety_limits():
+    # 两个大表仅验证前置检查，不触发 O(n²) 算法或占用巨量内存。
+    with pytest.raises(ValueError, match="3000"):
+        fit_reduction(pd.DataFrame({"a": np.arange(3001.),
+                                    "b": np.arange(3001.) ** 2}), method="mds")
+    with pytest.raises(ValueError, match="10000"):
+        fit_reduction(pd.DataFrame({"a": np.arange(10001.),
+                                    "b": np.arange(10001.) ** 2}), method="tsne")

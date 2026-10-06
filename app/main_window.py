@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from core import preprocessing, statistics
 from app.plot_canvas import PlotCanvas
 from app.pca_page import PCAPage
+from app.dimension_page import ReductionPage
 from app.session import Session
 from app.table_model import FrameTableModel
 
@@ -160,8 +161,8 @@ class MainWindow(QMainWindow):
         panel, pane = card("工作流程")
         pane.addWidget(label(
             "数据导入 → 数据清洗与标准化 → 特征统计 → 主成分分析 → 多方法降维 → 聚类分析 → "
-            "模型评价 → 结果导出\n\n当前第一、二阶段：数据管理、预处理、特征统计及 PCA 可真实运行；"
-            "高级降维与聚类算法将在后续阶段实现。"))
+            "模型评价 → 结果导出\n\n当前前三阶段：数据管理、统计、PCA 与因子分析、MDS、t-SNE 可真实运行；"
+            "聚类及其评价将在后续阶段实现。"))
         layout.addWidget(panel)
 
         def update():
@@ -406,16 +407,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.pca_page)
 
     def make_dimension_page(self, layout):
-        self.placeholder(layout, "因子分析 / MDS / t-SNE", [
-            ("方法", "choice", ["因子分析", "MDS 多维尺度分析", "t-SNE"]),
-            ("目标维度", "choice", ["2", "3"]),
-            ("因子数量", "int", 2),
-            ("距离度量", "choice", ["euclidean", "manhattan"]),
-            ("perplexity", "float", 30),
-            ("learning rate", "float", 200),
-            ("最大迭代次数", "int", 1000),
-            ("随机种子", "int", 42),
-        ], "降维结果与方法对比")
+        self.dimension_page = ReductionPage(self.session)
+        layout.addWidget(self.dimension_page)
 
     def make_cluster_page(self, layout):
         self.placeholder(layout, "K-means / 层次聚类 / DBSCAN", [
@@ -446,6 +439,14 @@ class MainWindow(QMainWindow):
             action.addWidget(button(title, self.not_ready))
         pane.addLayout(action)
         layout.addWidget(panel)
+
+    def closeEvent(self, event):
+        if hasattr(self, "dimension_page") and self.dimension_page.busy:
+            QMessageBox.information(self, "计算进行中",
+                "降维计算仍在后台线程执行，请在本次计算结束后关闭窗口。")
+            event.ignore()
+            return
+        super().closeEvent(event)
 
     def refresh_all(self):
         for refresh in self.refreshers:

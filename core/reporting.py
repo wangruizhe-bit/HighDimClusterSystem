@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from html import escape
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import re
 
 import numpy as np
@@ -169,13 +170,22 @@ def _validate_suffix(path, suffix):
     return destination
 
 
+def _safe_export(destination, save):
+    """先写到同一磁盘的暂存位置，成功后再替换正式文件。"""
+    with TemporaryDirectory(dir=destination.parent) as folder:
+        temporary = Path(folder) / destination.name
+        save(temporary)
+        temporary.replace(destination)
+    return destination
+
+
 def export_csv(item, path):
     """输出所选结果表全部行，使用 utf-8-sig 方便 Windows Excel 打开。"""
     if not isinstance(item, ResultItem):
         raise ValueError("请先选择一张可导出的结果表。")
     destination = _validate_suffix(path, ".csv")
-    _safe_frame(item.frame).to_csv(destination, index=False, encoding="utf-8-sig")
-    return destination
+    return _safe_export(destination, lambda file: _safe_frame(item.frame).to_csv(
+        file, index=False, encoding="utf-8-sig"))
 
 
 def _sheet_name(text, taken):

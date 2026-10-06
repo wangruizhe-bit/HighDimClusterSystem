@@ -2,7 +2,20 @@
 
 High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
-> 当前进度：**五阶段功能开发均已实现，第五阶段跨平台回归及 Windows 打包正在验收**。项目为独立运行的桌面应用，不依赖在线服务。正式交付是否完成请以 GitHub Actions 最新成功记录为准。
+> 当前进度：**五阶段全部完成。Windows/Linux 各 83 项自动化测试通过，Windows 独立 EXE 打包、启动自检与真实界面截图全部成功。** 项目可在本地独立运行，不依赖在线服务。
+
+## 已完成的 Windows 安装包与截图
+
+[Windows V1.0 最终成功打包记录](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37431338463)
+
+打开工作流页面下方的 **Artifacts**，下载：
+
+- **HighDimClusterSystem-V1.0-Windows**：完整可运行 Windows 程序目录。解压 ZIP，保留整个文件夹并启动 HighDimClusterSystem.exe。该版本通过了打包后独立启动自检。
+- **HighDimClusterSystem-V1.0-Screenshots**：基于实际 Windows Qt 程序生成的界面截图，可作为说明书素材。
+
+GitHub Actions 附件保留 30 天；到期后可以重新运行 Windows 构建工作流。当前程序没有商业代码签名，请从已登录的 Private 仓库验证来源后运行。
+
+[查看 Windows 和 Linux 各 83 项成功测试](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37431338512)
 
 ## 环境与启动
 
@@ -76,7 +89,7 @@ python main.py
 - **安全可靠性**：保护敏感的电子表格文本，避免将其写成公式；先在临时目录完整保存，再替换正式导出文件；数据变更时清理过期分析快照，点击“清空结果”不会删除当前数据。
 - **Windows 交付**：另有 GitHub Actions 工作流自动使用 PyInstaller 打包桌面程序、运行可执行文件启动自检，生成真实 Qt 界面截图附件。通过的运行任务下可直接下载对应 ZIP，不需要安装 Codex。
 - **用户说明**：见 [中文用户操作说明](docs/用户操作说明.md)，涵盖 8 个功能页面、软件启动、分析建议与常见问题。
-- **自动化测试**：增加实际文件读回、Excel 公式安全、图片格式、GUI 导出和保留原数据、失败导出保护等用例。最终通过数量以最新 Windows/Linux Actions 任务为准。
+- **自动化测试**：增加实际文件读回、Excel 公式安全、图片格式、GUI 导出和保留原数据、失败导出保护等用例。Windows 与 Linux 各 **83 项自动化测试已经全部通过**。
 
 ### 交付注意事项
 
@@ -124,7 +137,7 @@ python -m compileall -q main.py app core tests
 python -m pytest -q
 ```
 
-测试包括数据读取和恢复、缺失值处理、标准化、描述统计、PCA 数值对照、因子载荷、MDS 距离残差、t-SNE 随机种子复现、8 页切换、后台线程运行、分析记录与方法对比。GitHub Actions 在 Linux 和 Windows 上各完成 68 项检查；这属于自动化及无头 GUI 冒烟测试，并非 Windows 桌面人工交互和视觉验收的替代品。
+测试包括数据读取和恢复、缺失值处理、标准化、描述统计、PCA 数值对照、因子载荷、MDS 距离残差、t-SNE 随机种子复现、8 页切换、后台线程运行、分析记录与方法对比。GitHub Actions 在 Linux 和 Windows 上各完成 **83 项检查**；这属于自动化及无头 GUI 冒烟测试，并非 Windows 桌面人工交互和视觉验收的替代品。
 
 ## 后续五阶段路线
 
@@ -132,7 +145,7 @@ python -m pytest -q
 2. 特征统计完善、PCA 核心计算及二维/三维展示（已实现）
 3. 因子分析、MDS、t-SNE 与降维对比（已完成、双平台自动化测试通过）
 4. K-means、层次聚类、DBSCAN、聚类评价与参数辅助选择（已完成）
-5. 统一结果管理、CSV/Excel/HTML/图像导出、中文说明、Windows 打包（已实现；自动化验收中）
+5. 统一结果管理、CSV/Excel/HTML/图像导出、中文说明、Windows 打包（已完成，双平台测试与 EXE 启动通过）
 
 ## 说明
 

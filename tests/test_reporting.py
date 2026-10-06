@@ -144,4 +144,4 @@ def test_excel_sheet_name_rules():
     second = _sheet_name(" a:?*[]\\longlonglonglonglonglonglonglong", names)
     assert first != second
     assert len(first) <= 31 and len(second) <= 31
-    assert not any(c in first for c in r'[]:*?/\')
+    assert not any(c in first for c in "[]:*?/\\")

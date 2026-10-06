@@ -1,6 +1,22 @@
 """可复用 Matplotlib 画布，支持二维、三维轴与重复绘图清理。"""
+from matplotlib import rcParams, font_manager
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+
+
+def _choose_chinese_matplotlib_font():
+    """优先使用实际已安装的字体，避免中文标题/坐标标签显示为方块。"""
+    installed = {face.name for face in font_manager.fontManager.ttflist}
+    candidates = (
+        "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Noto Sans CJK JP",
+        "Noto Sans SC", "WenQuanYi Zen Hei", "PingFang SC", "Arial Unicode MS",
+    )
+    chosen = next((name for name in candidates if name in installed), "DejaVu Sans")
+    rcParams["font.sans-serif"] = [chosen, "DejaVu Sans"]
+    rcParams["axes.unicode_minus"] = False
+
+
+_choose_chinese_matplotlib_font()
 
 
 class PlotCanvas(FigureCanvasQTAgg):

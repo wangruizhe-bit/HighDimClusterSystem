@@ -203,34 +203,29 @@ def _sheet_name(text, taken):
 
 
 def export_excel(items, path):
-    """每张实际结果表分别保存为一张 sheet，不写入任何模拟统计结果。"""
+    """保存全部真实分析结果。先写临时工作簿，成功后替换目标文件。"""
     if not items:
         raise ValueError("尚无可导出的真实数据和分析结果。")
     destination = _validate_suffix(path, ".xlsx")
-    used = set()
-    already_exists = destination.exists()
-    try:
-        with pd.ExcelWriter(destination, engine="openpyxl") as writer:
+    for item in items:
+        if not isinstance(item, ResultItem):
+            raise ValueError("结果列表包含未知对象。")
+        if len(item.frame) >= 1_048_576 or len(item.frame.columns) > 16_384:
+            raise ValueError(f"{item.title} 超出 Excel 单表大小限制，请改用 CSV。")
+
+    def write(temporary):
+        used = set()
+        with pd.ExcelWriter(temporary, engine="openpyxl") as writer:
             for item in items:
-                if not isinstance(item, ResultItem):
-                    raise ValueError("结果列表包含未知对象。")
-                # Excel 单 sheet 极限：1,048,576 行（含表头）、16,384 列。
-                if len(item.frame) >= 1_048_576 or len(item.frame.columns) > 16_384:
-                    raise ValueError(f"{item.title} 超出 Excel 单表大小限制，请改用 CSV。")
                 name = _sheet_name(item.title, used)
                 _safe_frame(item.frame).to_excel(writer, sheet_name=name, index=False)
                 sheet = writer.sheets[name]
                 sheet.freeze_panes = "A2"
                 sheet.auto_filter.ref = sheet.dimensions
                 for cells in sheet.iter_cols(max_row=1):
-                    column = cells[0]
-                    column.font = column.font.copy(bold=True)
-    except Exception:
-        # 失败时不要留下误以为完整的工作簿
-        if not already_exists and destination.exists():
-            destination.unlink(missing_ok=True)
-        raise
-    return destination
+                    cells[0].font = cells[0].font.copy(bold=True)
+
+    return _safe_export(destination, write)
 
 
 def _html_table(frame, *, max_rows=10, max_columns=14):

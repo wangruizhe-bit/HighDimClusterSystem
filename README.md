@@ -4,31 +4,31 @@ High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
 > 当前进度：**五阶段全部完成。Windows/Linux 各 83 项自动化测试通过，Windows 独立 EXE 打包、启动自检与真实界面截图全部成功。** 项目可在本地独立运行，不依赖在线服务。
 
-## Windows 安装包重要修复通知（2026-10-06）
+## Windows 发行包（DLL 缺失问题已修复）
 
-**请勿继续使用旧的 `HighDimClusterSystem-V1.0-Windows` 附件。**
-旧版经过服务器内启动检查，但 GitHub Artifact 上传时遗漏了
-`sklearn/.libs` 隐藏目录下的 DLL，导致用户下载后提示缺少动态链接库。
+**请仅使用修复版附件**：旧的 `HighDimClusterSystem-V1.0-Windows` 缺少
+`sklearn/.libs` 中的 DLL，用户下载后无法启动。旧包不再推荐使用。
 
-修复工作流现已启用：上传包含隐藏 DLL，并从 GitHub
-**真正下载刚上传的附件**，逐文件比较清单、关键 DLL 哈希并启动下载后的 EXE。
-**新版本以 `HighDimClusterSystem-V1.0-Windows-Fixed` 为名，
-只有工作流状态为绿色 Success 时才可以下载使用。**
+[下载已验证的 Windows 修复版](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37432908827)
 
-[查看新的修复版构建任务](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37432908827)
+打开任务页面底部的 **Artifacts**，下载：
 
-## 已完成的 Windows 安装包与截图
+- **HighDimClusterSystem-V1.0-Windows-Fixed**：完整 Windows 程序目录，解压后保留
+  `_internal` 和 `HighDimClusterSystem.exe` 在同一文件夹，双击 EXE 运行。
+- **HighDimClusterSystem-V1.0-Screenshots**：由真实 Qt 界面生成的截图。
 
-[旧版构建记录（已发现 DLL 缺失，不可再使用）](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37431338463)
+**修复及验证说明**：旧版使用 GitHub Artifact 默认设置，导致隐藏目录
+`_internal/sklearn/.libs/` 未被上传，进而缺少 `vcomp140.dll`。
+新流程开启 `include-hidden-files: true`，将已经上传的完整程序**重新下载**，
+对比源码构建目录和下载目录的 **2314 个文件**，校验隐藏 DLL 哈希值，
+并在下载目录内启动 EXE，验证已成功。
 
-打开工作流页面下方的 **Artifacts**，下载：
+- [Windows 新包下载与启动验收：成功](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37432908827)
+- [Windows/Linux 完整测试：成功](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37432998182)
 
-- **HighDimClusterSystem-V1.0-Windows**：完整可运行 Windows 程序目录。解压 ZIP，保留整个文件夹并启动 HighDimClusterSystem.exe。该版本通过了打包后独立启动自检。
-- **HighDimClusterSystem-V1.0-Screenshots**：基于实际 Windows Qt 程序生成的界面截图，可作为说明书素材。
-
-GitHub Actions 附件保留 30 天；到期后可以重新运行 Windows 构建工作流。当前程序没有商业代码签名，请从已登录的 Private 仓库验证来源后运行。
-
-[查看 Windows 和 Linux 各 83 项成功测试](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37431338512)
+GitHub Actions 附件默认保留 30 天，过期后可以重新触发 Windows 构建工作流。
+程序尚未进行商业代码签名；如 Windows SmartScreen 提示未知发布者，
+先确认下载来源再决定是否运行。
 
 ## 环境与启动
 

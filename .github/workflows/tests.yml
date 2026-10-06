@@ -1,4 +1,4 @@
-name: HighDimCluster Stage 1-4 CI
+name: HighDimCluster Stage 1-5 CI
 on:
   push:
   pull_request:
@@ -28,6 +28,8 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
       - name: Compile Python source
-        run: python -m compileall -q main.py app core tests
+        run: python -m compileall -q main.py app core tests tools
+      - name: Verify application entrypoint
+        run: python main.py --self-check
       - name: Run unit and GUI smoke tests
         run: python -m pytest -q

@@ -15,6 +15,7 @@ from app.pca_page import PCAPage
 from app.dimension_page import ReductionPage
 from app.clustering_page import ClusterPage
 from app.evaluation_page import EvaluationPage
+from app.results_page import ResultsPage
 from app.session import Session
 from app.table_model import FrameTableModel
 
@@ -69,6 +70,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1020, 680)
         self.session = Session(self)
         self.views = []
+        self.feature_figure_ready = False
         self.refreshers = []
         self.setStatusBar(self.statusBar())
         root = QWidget()
@@ -280,6 +282,7 @@ class MainWindow(QMainWindow):
             self.feature_vars.addItems([str(x) for x in self.session.data.get_numeric_columns()])
             self.stats_model.set_frame(None)
             self.statistics_canvas.clear_message("选择数值变量并执行统计分析")
+            self.feature_figure_ready = False
         self.refreshers.append(update)
 
     def selected_columns(self, widget):
@@ -297,6 +300,9 @@ class MainWindow(QMainWindow):
             else:
                 output = statistics.covariance(df, cols).rename_axis("变量").reset_index()
             self.stats_model.set_frame(output)
+            names = {"describe": "描述性统计", "corr": "Pearson 相关性", "cov": "协方差"}
+            self.session.feature_result = (names[kind], output.copy(deep=True))
+            self.session.results_changed.emit()
             self.statusBar().showMessage("统计计算已完成。", 5000)
         self.guarded(work)
 
@@ -316,6 +322,8 @@ class MainWindow(QMainWindow):
                     other.remove()
             self.statistics_canvas.figure.colorbar(pic, ax=axes, fraction=.045, pad=.035)
             self.statistics_canvas.draw_idle()
+            self.feature_figure_ready = True
+            self.session.results_changed.emit()
         self.guarded(work)
 
     def plot_feature(self, kind):
@@ -364,6 +372,8 @@ class MainWindow(QMainWindow):
                 raise ValueError("未知图表类型。")
             ax.grid(alpha=.15)
             canvas.draw_idle()
+            self.feature_figure_ready = True
+            self.session.results_changed.emit()
         self.guarded(work)
 
     def settings_box(self, title, fields):
@@ -421,14 +431,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.evaluation_page)
 
     def make_results_page(self, layout):
-        panel, pane = card("结果中心")
-        pane.addWidget(label("真实分析结果记录和报表将在第五阶段统一接入。"
-                            "基础统计结果目前可在“特征统计分析”页面查看。"))
-        action = QHBoxLayout()
-        for title in ["导出数据", "导出结果表", "保存图像", "清空结果"]:
-            action.addWidget(button(title, self.not_ready))
-        pane.addLayout(action)
-        layout.addWidget(panel)
+        self.results_page = ResultsPage(self.session, self)
+        layout.addWidget(self.results_page)
 
     def closeEvent(self, event):
         busy = [

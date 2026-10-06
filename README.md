@@ -4,9 +4,22 @@ High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
 > 当前进度：**五阶段全部完成。Windows/Linux 各 83 项自动化测试通过，Windows 独立 EXE 打包、启动自检与真实界面截图全部成功。** 项目可在本地独立运行，不依赖在线服务。
 
+## Windows 安装包重要修复通知（2026-10-06）
+
+**请勿继续使用旧的 `HighDimClusterSystem-V1.0-Windows` 附件。**
+旧版经过服务器内启动检查，但 GitHub Artifact 上传时遗漏了
+`sklearn/.libs` 隐藏目录下的 DLL，导致用户下载后提示缺少动态链接库。
+
+修复工作流现已启用：上传包含隐藏 DLL，并从 GitHub
+**真正下载刚上传的附件**，逐文件比较清单、关键 DLL 哈希并启动下载后的 EXE。
+**新版本以 `HighDimClusterSystem-V1.0-Windows-Fixed` 为名，
+只有工作流状态为绿色 Success 时才可以下载使用。**
+
+[查看新的修复版构建任务](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37432908827)
+
 ## 已完成的 Windows 安装包与截图
 
-[Windows V1.0 最终成功打包记录](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37431338463)
+[旧版构建记录（已发现 DLL 缺失，不可再使用）](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/37431338463)
 
 打开工作流页面下方的 **Artifacts**，下载：
 

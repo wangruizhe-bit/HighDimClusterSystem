@@ -8,18 +8,22 @@ class Session(QObject):
         super().__init__(parent)
         self.data = DataManager()
         self.results = []
+        self.latest_pca = None
 
     def load(self, path):
         self.data.load_file(path)
         self.results.clear()
+        self.latest_pca = None
         self.data_changed.emit()
 
     def apply(self, frame):
         self.data.set_data(frame)
         self.results.clear()
+        self.latest_pca = None
         self.data_changed.emit()
 
     def restore(self):
         self.data.restore_original()
         self.results.clear()
+        self.latest_pca = None
         self.data_changed.emit()

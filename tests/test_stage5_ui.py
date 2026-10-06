@@ -96,10 +96,15 @@ def test_result_refresh_and_clear_preserve_data(tmp_path, monkeypatch):
         QMessageBox, "question",
         lambda *args: QMessageBox.StandardButton.Yes,
     )
+    snapshot = window.session.data.get_data()
     page.clear_results()
     assert window.session.latest_pca is None
     assert not window.session.cluster_results
-    assert window.session.data.get_data().equals(original)
+    # 清空的是分析快照，内存中的工作数据必须逐值完全不变。
+    pd.testing.assert_frame_equal(window.session.data.get_data(), snapshot)
+    # CSV 存取允许浮点数最后几位的正常舍入误差。
+    pd.testing.assert_frame_equal(window.session.data.get_data(), original,
+                                  rtol=1e-12, atol=1e-12)
     assert len(page.catalog) == 2
     assert page.figure_combo.count() == 0
 

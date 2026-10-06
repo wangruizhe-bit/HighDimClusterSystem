@@ -198,6 +198,7 @@ def export_excel(items, path):
         raise ValueError("尚无可导出的真实数据和分析结果。")
     destination = _validate_suffix(path, ".xlsx")
     used = set()
+    already_exists = destination.exists()
     try:
         with pd.ExcelWriter(destination, engine="openpyxl") as writer:
             for item in items:
@@ -216,7 +217,7 @@ def export_excel(items, path):
                     column.font = column.font.copy(bold=True)
     except Exception:
         # 失败时不要留下误以为完整的工作簿
-        if destination.exists():
+        if not already_exists and destination.exists():
             destination.unlink(missing_ok=True)
         raise
     return destination

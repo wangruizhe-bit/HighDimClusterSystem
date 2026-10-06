@@ -160,6 +160,7 @@ class PCAPage(QWidget):
         self.draw_scores2d(result)
         self.draw_scores3d(result)
         self.tabs.setCurrentIndex(0)
+        self.session.results_changed.emit()
 
     def draw_variance(self, result):
         canvas = self.variance_canvas

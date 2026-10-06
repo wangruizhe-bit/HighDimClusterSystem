@@ -1,4 +1,4 @@
-"""八页中文界面：预处理、统计与 PCA 真实执行，其他算法按阶段接入。"""
+"""八页中文界面：统计、PCA、降维、聚类与评价均接入真实计算。"""
 from functools import partial
 
 import pandas as pd
@@ -13,6 +13,8 @@ from core import preprocessing, statistics
 from app.plot_canvas import PlotCanvas
 from app.pca_page import PCAPage
 from app.dimension_page import ReductionPage
+from app.clustering_page import ClusterPage
+from app.evaluation_page import EvaluationPage
 from app.session import Session
 from app.table_model import FrameTableModel
 
@@ -161,8 +163,8 @@ class MainWindow(QMainWindow):
         panel, pane = card("工作流程")
         pane.addWidget(label(
             "数据导入 → 数据清洗与标准化 → 特征统计 → 主成分分析 → 多方法降维 → 聚类分析 → "
-            "模型评价 → 结果导出\n\n当前前三阶段：数据管理、统计、PCA 与因子分析、MDS、t-SNE 可真实运行；"
-            "聚类及其评价将在后续阶段实现。"))
+            "模型评价 → 结果导出\n\n当前前四阶段：预处理、统计、PCA、降维、聚类与评价均可真实运行；"
+            "第五阶段将完善统一结果导出与报告。"))
         layout.addWidget(panel)
 
         def update():
@@ -411,24 +413,12 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.dimension_page)
 
     def make_cluster_page(self, layout):
-        self.placeholder(layout, "K-means / 层次聚类 / DBSCAN", [
-            ("算法", "choice", ["K-means", "层次聚类", "DBSCAN"]),
-            ("聚类数 K", "int", 3),
-            ("最大迭代次数", "int", 300),
-            ("随机种子", "int", 42),
-            ("linkage", "choice", ["ward", "complete", "average", "single"]),
-            ("距离度量", "choice", ["euclidean", "manhattan"]),
-            ("eps", "float", 0.5),
-            ("min_samples", "int", 5),
-        ], "类别标签、类别统计、二维/三维聚类图与树状图")
+        self.cluster_page = ClusterPage(self.session)
+        layout.addWidget(self.cluster_page)
 
     def make_evaluation_page(self, layout):
-        self.placeholder(layout, "聚类质量评价与模型对比", [
-            ("评价指标", "choice", ["Silhouette", "Calinski-Harabasz", "Davies-Bouldin"]),
-            ("K 值辅助选择", "choice", ["肘部法", "轮廓系数法"]),
-            ("最小 K", "int", 2),
-            ("最大 K", "int", 10),
-        ], "待实现：多模型评分、运行时间、肘部曲线与轮廓系数曲线")
+        self.evaluation_page = EvaluationPage(self.session)
+        layout.addWidget(self.evaluation_page)
 
     def make_results_page(self, layout):
         panel, pane = card("结果中心")
@@ -441,9 +431,16 @@ class MainWindow(QMainWindow):
         layout.addWidget(panel)
 
     def closeEvent(self, event):
-        if hasattr(self, "dimension_page") and self.dimension_page.busy:
+        busy = [
+            p for p in (
+                getattr(self, "dimension_page", None),
+                getattr(self, "cluster_page", None),
+                getattr(self, "evaluation_page", None),
+            ) if p is not None and p.busy
+        ]
+        if busy:
             QMessageBox.information(self, "计算进行中",
-                "降维计算仍在后台线程执行，请在本次计算结束后关闭窗口。")
+                "计算线程仍在运行，请等待分析完成后再关闭窗口。")
             event.ignore()
             return
         super().closeEvent(event)

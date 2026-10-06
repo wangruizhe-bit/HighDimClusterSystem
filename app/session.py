@@ -4,6 +4,8 @@ from core.data_manager import DataManager
 
 class Session(QObject):
     data_changed = Signal()
+    cluster_changed = Signal()
+    k_search_changed = Signal()
     def __init__(self, parent=None):
         super().__init__(parent)
         self.data = DataManager()
@@ -11,13 +13,19 @@ class Session(QObject):
         self.latest_pca = None
         self.reduction_results = []
         self.data_revision = 0
+        self.cluster_results = []
+        self.k_search_result = None
 
     def _invalidate(self):
         self.results.clear()
         self.latest_pca = None
         self.reduction_results.clear()
+        self.cluster_results.clear()
+        self.k_search_result = None
         self.data_revision += 1
         self.data_changed.emit()
+        self.cluster_changed.emit()
+        self.k_search_changed.emit()
 
     def load(self, path):
         self.data.load_file(path)

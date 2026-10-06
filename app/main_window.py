@@ -1,4 +1,4 @@
-"""八页中文界面：数据处理真实执行，后续算法入口明确标识未实现。"""
+"""八页中文界面：预处理、统计与 PCA 真实执行，其他算法按阶段接入。"""
 from functools import partial
 
 import pandas as pd
@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 from core import preprocessing, statistics
 from app.plot_canvas import PlotCanvas
+from app.pca_page import PCAPage
 from app.session import Session
 from app.table_model import FrameTableModel
 
@@ -159,7 +160,7 @@ class MainWindow(QMainWindow):
         panel, pane = card("工作流程")
         pane.addWidget(label(
             "数据导入 → 数据清洗与标准化 → 特征统计 → 主成分分析 → 多方法降维 → 聚类分析 → "
-            "模型评价 → 结果导出\n\n当前第一阶段：数据管理、预处理和基础统计可真实运行；"
+            "模型评价 → 结果导出\n\n当前第一、二阶段：数据管理、预处理、特征统计及 PCA 可真实运行；"
             "高级降维与聚类算法将在后续阶段实现。"))
         layout.addWidget(panel)
 
@@ -247,11 +248,18 @@ class MainWindow(QMainWindow):
         self.feature_vars.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
         self.feature_vars.setMaximumHeight(145)
         pane.addWidget(self.feature_vars)
-        actions = QHBoxLayout()
-        actions.addWidget(button("描述性统计", lambda: self.calculate_stats("describe"), True))
-        actions.addWidget(button("Pearson 相关性", lambda: self.calculate_stats("corr")))
-        actions.addWidget(button("协方差矩阵", lambda: self.calculate_stats("cov")))
-        actions.addWidget(button("相关热力图", self.draw_heatmap))
+        actions = QGridLayout()
+        feature_actions = [
+            ("描述性统计", lambda: self.calculate_stats("describe")),
+            ("Pearson 相关性", lambda: self.calculate_stats("corr")),
+            ("协方差矩阵", lambda: self.calculate_stats("cov")),
+            ("相关热力图", self.draw_heatmap),
+            ("变量直方图", lambda: self.plot_feature("hist")),
+            ("多变量箱线图", lambda: self.plot_feature("box")),
+            ("双变量散点图", lambda: self.plot_feature("scatter")),
+        ]
+        for i, (caption, fn) in enumerate(feature_actions):
+            actions.addWidget(button(caption, fn, i == 0), i // 4, i % 4)
         pane.addLayout(actions)
         layout.addWidget(panel)
         panel, pane = card("真实统计计算结果")
@@ -307,6 +315,54 @@ class MainWindow(QMainWindow):
             self.statistics_canvas.draw_idle()
         self.guarded(work)
 
+    def plot_feature(self, kind):
+        """基于当前数据和已选数值列进行真实分布与散点可视化。"""
+        import numpy as np
+        def work():
+            frame = statistics.numeric_data(
+                self.session.data.get_data(), self.selected_columns(self.feature_vars))
+            canvas = self.statistics_canvas
+            ax = canvas.new_axes()
+            if kind == "hist":
+                col = frame.columns[0]
+                clean = frame[col].replace([np.inf, -np.inf], np.nan).dropna()
+                if clean.empty:
+                    raise ValueError("该变量没有可用的有限数值。")
+                ax.hist(clean, bins="auto", color="#3b82b8", edgecolor="white", alpha=.8)
+                ax.set_title(f"Distribution: {col} (n={len(clean)})")
+                ax.set_xlabel(str(col))
+                ax.set_ylabel("Frequency")
+            elif kind == "box":
+                # 对多变量图形的显示数量设上限，不影响统计结果本身。
+                chart = frame.iloc[:, :12].replace([np.inf, -np.inf], np.nan)
+                series = [chart[c].dropna().to_numpy() for c in chart.columns]
+                valid = [(str(c), v) for c, v in zip(chart.columns, series) if len(v)]
+                if not valid:
+                    raise ValueError("所选变量没有可用于箱线图的有限数值。")
+                ax.boxplot([v for _, v in valid], tick_labels=[c for c, _ in valid],
+                           patch_artist=False)
+                ax.tick_params(axis="x", rotation=35)
+                ax.set_title("Box plot (up to 12 variables)")
+                ax.set_ylabel("Value")
+            elif kind == "scatter":
+                if len(frame.columns) < 2:
+                    raise ValueError("双变量散点图至少需要两个数值变量。")
+                left, right = frame.columns[:2]
+                finite = frame.loc[:, [left, right]].replace(
+                    [np.inf, -np.inf], np.nan).dropna()
+                if finite.empty:
+                    raise ValueError("两变量没有共同的有效样本。")
+                ax.scatter(finite[left], finite[right], alpha=.7, s=25,
+                           edgecolors="white", linewidths=.4)
+                ax.set_xlabel(str(left))
+                ax.set_ylabel(str(right))
+                ax.set_title(f"Scatter: {left} vs {right} (n={len(finite)})")
+            else:
+                raise ValueError("未知图表类型。")
+            ax.grid(alpha=.15)
+            canvas.draw_idle()
+        self.guarded(work)
+
     def settings_box(self, title, fields):
         group = QGroupBox(title)
         lay = QGridLayout(group)
@@ -346,13 +402,8 @@ class MainWindow(QMainWindow):
         self.inform("该分析功能将在后续开发阶段完成；目前没有生成任何模拟计算结果。")
 
     def make_pca_page(self, layout):
-        self.placeholder(layout, "主成分分析 · PCA", [
-            ("变量选择", "choice", ["自动选择数值变量"]),
-            ("是否标准化", "check", True),
-            ("主成分数量方式", "choice", ["自动确定", "指定数量", "按累计贡献率"]),
-            ("主成分数量", "int", 2),
-            ("目标累计贡献率（%）", "float", 85),
-        ], "特征值、贡献率、载荷矩阵、主成分得分与二维/三维结果")
+        self.pca_page = PCAPage(self.session)
+        layout.addWidget(self.pca_page)
 
     def make_dimension_page(self, layout):
         self.placeholder(layout, "因子分析 / MDS / t-SNE", [

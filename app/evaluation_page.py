@@ -37,6 +37,7 @@ class EvaluationPage(QWidget):
         self.session = session
         self.worker = None
         self.busy = False
+        self.score_plot_ready = False
         self._submitted_revision = -1
 
         root = QVBoxLayout(self)
@@ -134,6 +135,7 @@ class EvaluationPage(QWidget):
         self.k_min.setValue(2)
         self.k_max.setValue(min(8, maximum))
         self.search_model.set_frame(None)
+        self.score_plot_ready = False
         self.k_canvas.clear_message("导入有效数据后可执行 K 值扫描")
         self.search_summary.setText("尚无 K 值扫描结果。")
         self.refresh_cluster_comparison()
@@ -156,6 +158,7 @@ class EvaluationPage(QWidget):
             })
         self.history_model.set_frame(pd.DataFrame(rows))
         if not records:
+            self.score_plot_ready = False
             self.score_canvas.clear_message("暂无有效聚类记录")
             self.record_summary.setText("暂无记录。请先到聚类页面执行分析。")
             return
@@ -168,6 +171,7 @@ class EvaluationPage(QWidget):
             "DBSCAN 的评分仅基于非噪声样本，请同时观察噪声比例。"
         )
         if not valid:
+            self.score_plot_ready = False
             self.score_canvas.clear_message("无同条件、可计算轮廓系数的模型结果")
             return
         ax = self.score_canvas.new_axes()
@@ -180,6 +184,7 @@ class EvaluationPage(QWidget):
         ax.set_title("Comparable runs: silhouette (noise excluded for DBSCAN)")
         ax.grid(axis="y", alpha=.15)
         self.score_canvas.draw_idle()
+        self.score_plot_ready = True
 
     def start_search(self):
         if self.busy:
@@ -210,7 +215,6 @@ class EvaluationPage(QWidget):
             self.search_summary.setText("数据已变化，已丢弃过期的 K 扫描结果。")
             return
         self.session.k_search_result = result
-        self.session.k_search_changed.emit()
         self.search_model.set_frame(result.scores)
         recommendation = (
             f"最大轮廓系数对应 K={result.suggested_k}（仅作为辅助参考）"
@@ -221,6 +225,8 @@ class EvaluationPage(QWidget):
             f"耗时 {result.elapsed_seconds:.2f} 秒。肘部位置应结合左侧曲线由用户判断。"
         )
         self._plot_k(result)
+        self.session.k_search_changed.emit()
+        self.session.results_changed.emit()
 
     def _error(self, message):
         if self._submitted_revision == self.session.data_revision:

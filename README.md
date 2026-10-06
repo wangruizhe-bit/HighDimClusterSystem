@@ -2,7 +2,7 @@
 
 High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
-> 当前进度：**第二阶段（PCA 与特征分析）已实现，待运行测试验收**。本项目是本地 Windows 桌面软件，不依赖远程接口；未开发的因子分析、MDS、t-SNE、聚类算法及指标不会生成虚假结果。
+> 当前进度：**第一、二阶段已完成，PCA 与特征统计模块已通过自动化测试**。本项目是本地 Windows 桌面软件，不依赖远程接口；未开发的因子分析、MDS、t-SNE、聚类算法及指标不会生成虚假结果。
 
 ## 环境与启动
 

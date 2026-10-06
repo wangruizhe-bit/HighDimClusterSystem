@@ -9,21 +9,24 @@ class Session(QObject):
         self.data = DataManager()
         self.results = []
         self.latest_pca = None
+        self.reduction_results = []
+        self.data_revision = 0
+
+    def _invalidate(self):
+        self.results.clear()
+        self.latest_pca = None
+        self.reduction_results.clear()
+        self.data_revision += 1
+        self.data_changed.emit()
 
     def load(self, path):
         self.data.load_file(path)
-        self.results.clear()
-        self.latest_pca = None
-        self.data_changed.emit()
+        self._invalidate()
 
     def apply(self, frame):
         self.data.set_data(frame)
-        self.results.clear()
-        self.latest_pca = None
-        self.data_changed.emit()
+        self._invalidate()
 
     def restore(self):
         self.data.restore_original()
-        self.results.clear()
-        self.latest_pca = None
-        self.data_changed.emit()
+        self._invalidate()

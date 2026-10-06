@@ -4,6 +4,7 @@ CSV: 当前选择的单张真实结果表；XLSX: 现有全部真实结果表；
 HTML: 仅含真实统计值和截断的表格预览（本地离线查看）。
 对用户输入的单元格文本进行电子表格公式注入转义。
 """
+from copy import copy
 from dataclasses import dataclass
 from datetime import datetime
 from html import escape
@@ -223,7 +224,9 @@ def export_excel(items, path):
                 sheet.freeze_panes = "A2"
                 sheet.auto_filter.ref = sheet.dimensions
                 for cells in sheet.iter_cols(max_row=1):
-                    cells[0].font = cells[0].font.copy(bold=True)
+                    font = copy(cells[0].font)
+                    font.bold = True
+                    cells[0].font = font
 
     return _safe_export(destination, write)
 

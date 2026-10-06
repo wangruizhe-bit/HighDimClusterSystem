@@ -33,7 +33,7 @@ def snapshot(app, window, section, name, destination):
     result = window.grab().save(str(target), "PNG")
     if not result or target.stat().st_size < 10000:
         raise RuntimeError(f"截图无效或文件过小：{target}")
-    print(target)
+    print(f'Screenshot saved: page {section}, size={target.stat().st_size} bytes')
 
 
 def main():

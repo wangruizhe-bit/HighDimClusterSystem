@@ -49,8 +49,7 @@ jobs:
       - name: Test packaged executable startup
         shell: pwsh
         run: |
-          & ".\dist\HighDimClusterSystem\HighDimClusterSystem.exe" --self-check
-          if ($LASTEXITCODE -ne 0) { throw "Packaged executable startup check failed" }
+          python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--self-check'], timeout=120)"
       - name: Upload runnable Windows program
         uses: actions/upload-artifact@v4
         with:

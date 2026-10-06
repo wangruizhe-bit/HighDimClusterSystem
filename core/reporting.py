@@ -296,8 +296,7 @@ th{{background:#eaf2fb}}tr:nth-child(even){{background:#f7fafd}}
 {''.join(sections)}
 <footer><p class="muted">此报告为结果摘要预览，完整数据请使用独立的 Excel/CSV 导出功能。</p></footer>
 </body></html>"""
-    destination.write_text(document, encoding="utf-8")
-    return destination
+    return _safe_export(destination, lambda file: file.write_text(document, encoding="utf-8"))
 
 
 def export_figure(figure, path):
@@ -308,5 +307,5 @@ def export_figure(figure, path):
     if suffix not in (".png", ".svg"):
         raise ValueError("图片格式仅支持 PNG 或 SVG。")
     destination = _validate_suffix(path, suffix)
-    figure.savefig(destination, format=suffix.lstrip("."), dpi=200, bbox_inches="tight")
-    return destination
+    return _safe_export(destination, lambda file: figure.savefig(
+        file, format=suffix.lstrip("."), dpi=200, bbox_inches="tight"))

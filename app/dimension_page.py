@@ -40,6 +40,7 @@ class ReductionPage(QWidget):
         super().__init__(parent)
         self.session = session
         self.current_result = None
+        self.comparison_ready = False
         self.worker = None
         self.busy = False
         self._submitted_revision = 0
@@ -210,6 +211,7 @@ class ReductionPage(QWidget):
         self.tsne_learning_rate.setEnabled(self.tsne_lr_mode.currentData() == "manual")
 
     def on_data_changed(self):
+        self.comparison_ready = False
         # Session 已同步清空旧历史；异步结束时仍需再次校验提交版本。
         self.current_result = None
         self.variables.clear()
@@ -282,6 +284,8 @@ class ReductionPage(QWidget):
             self.summary.setText("数据已发生变化，本次过期的计算结果未保存。")
             return
         self.current_result = result
+        self.comparison_ready = False
+        self.comparison_canvas.clear_message('运行两次相同条件的降维分析后，可选择结果并排对比')
         self.session.reduction_results.append(result)
         if len(self.session.reduction_results) > self.MAX_HISTORY:
             del self.session.reduction_results[:-self.MAX_HISTORY]
@@ -314,6 +318,7 @@ class ReductionPage(QWidget):
         self._draw_embedding(result)
         self.update_history()
         self.result_tabs.setCurrentIndex(0)
+        self.session.results_changed.emit()
 
     def _failed(self, message):
         if self._submitted_revision == self.session.data_revision:
@@ -412,6 +417,8 @@ class ReductionPage(QWidget):
             ax.set_ylabel("Dimension 2")
             ax.grid(alpha=.15)
         self.comparison_canvas.draw_idle()
+        self.comparison_ready = True
+        self.session.results_changed.emit()
         ta, tb = left.metrics.get("trustworthiness"), right.metrics.get("trustworthiness")
         format_score = lambda x: "未计算" if x is None else f"{x:.4f}"
         self.compare_summary.setText(

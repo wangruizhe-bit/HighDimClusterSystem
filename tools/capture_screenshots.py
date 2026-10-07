@@ -8,29 +8,41 @@ import time
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QPixmap
 from app.main_window import MainWindow
 from app.styles import STYLE
 
 
 def pump(app, condition=None, timeout=25.0):
     end = time.monotonic() + timeout
+    if condition is None:
+        # 给布局、字体与 Matplotlib 至少 250ms 完成一次真实事件循环。
+        settle = time.monotonic() + 0.25
+        while time.monotonic() < settle:
+            app.processEvents()
+            time.sleep(0.01)
+        return
     while time.monotonic() < end:
         app.processEvents()
-        if condition is None or condition():
-            break
+        if condition():
+            app.processEvents()
+            return
         time.sleep(0.02)
-    app.processEvents()
-    if condition is not None and not condition():
-        raise RuntimeError("截图示例计算未在时限内完成。")
+    raise RuntimeError("截图示例计算未在时限内完成。")
 
 
 def snapshot(app, window, section, name, destination):
     window.goto(section)
     pump(app)
     target = destination / name
-    result = window.grab().save(str(target), "PNG")
+    # QWidget.grab() 在部分 Windows/offscreen Qt 组合下会由原生层直接退出。
+    # 使用 QWidget.render() 渲染到 QPixmap，可得到同一真实界面且更稳定。
+    pixmap = QPixmap(window.size())
+    pixmap.fill(Qt.GlobalColor.transparent)
+    window.render(pixmap)
+    result = pixmap.save(str(target), "PNG")
     if not result or target.stat().st_size < 10000:
         raise RuntimeError(f"截图无效或文件过小：{target}")
     print(f'Screenshot saved: page {section}, size={target.stat().st_size} bytes')

@@ -9,7 +9,7 @@
 STYLE = """
 QWidget {
     font-family: "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC";
-    font-size: 13px;
+    font-size: 14px;
     color: #292842;
 }
 QMainWindow, QWidget#studioWorkspace, QStackedWidget#studioCanvas,
@@ -24,19 +24,19 @@ QFrame#dataLensRail {
     border-left: 1px solid #dfd8ea;
 }
 QLabel#lensEyebrow {
-    color: #8b75c2;
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 1px;
+    color: #74629f;
+    font-size: 13px;
+    font-weight: 600;
 }
 QLabel#lensTitle {
     color: #2c2642;
-    font-size: 19px;
-    font-weight: 900;
+    font-size: 20px;
+    font-weight: 700;
 }
 QLabel#lensHint {
-    color: #8c8598;
-    font-size: 9px;
+    color: #6f6978;
+    font-size: 13px;
+    font-weight: 500;
 }
 QFrame#lensDatasetCard {
     background: #211c34;
@@ -44,25 +44,25 @@ QFrame#lensDatasetCard {
     border-radius: 11px;
 }
 QLabel#lensCardEyebrow {
-    color: #a99cdc;
-    font-size: 8px;
-    font-weight: 850;
+    color: #c8bdec;
+    font-size: 13px;
+    font-weight: 600;
 }
 QLabel#lensDatasetName {
     color: #f6f2ff;
-    font-size: 13px;
-    font-weight: 850;
+    font-size: 15px;
+    font-weight: 700;
 }
 QLabel#lensDatasetShape {
-    color: #c0b5dc;
-    font-size: 10px;
+    color: #d1c8e7;
+    font-size: 13px;
+    font-weight: 500;
 }
 QLabel#lensSection {
-    color: #776c90;
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    margin-top: 6px;
+    color: #615775;
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 8px;
 }
 QFrame#lensMetric {
     background: #f9f8fc;
@@ -70,13 +70,14 @@ QFrame#lensMetric {
     border-radius: 8px;
 }
 QLabel#lensMetricCaption {
-    color: #756f80;
-    font-size: 10px;
+    color: #5f5968;
+    font-size: 14px;
+    font-weight: 500;
 }
 QLabel#lensMetricValue {
     color: #493b7a;
-    font-size: 13px;
-    font-weight: 900;
+    font-size: 16px;
+    font-weight: 700;
 }
 QFrame#lensResultCard {
     background: #fff8ed;
@@ -84,27 +85,29 @@ QFrame#lensResultCard {
     border-radius: 9px;
 }
 QLabel#lensResultValue {
-    color: #b66b1c;
-    font-size: 26px;
-    font-weight: 900;
+    color: #a85f18;
+    font-size: 28px;
+    font-weight: 700;
 }
 QLabel#lensResultCaption {
-    color: #9b7449;
-    font-size: 9px;
+    color: #7c5d3e;
+    font-size: 13px;
+    font-weight: 500;
 }
 QLabel#lensModeCode {
-    color: #7d63dc;
-    font-size: 9px;
-    font-weight: 900;
+    color: #6b50c8;
+    font-size: 14px;
+    font-weight: 700;
 }
 QLabel#lensModeTitle {
     color: #322b48;
-    font-size: 13px;
-    font-weight: 850;
+    font-size: 16px;
+    font-weight: 700;
 }
 QLabel#lensModeHint {
-    color: #888094;
-    font-size: 9px;
+    color: #655e70;
+    font-size: 13px;
+    font-weight: 500;
 }
 QFrame#lensOffline {
     background: #e9e4f6;
@@ -113,12 +116,13 @@ QFrame#lensOffline {
 }
 QLabel#lensOfflineTitle {
     color: #5946a7;
-    font-size: 9px;
-    font-weight: 900;
+    font-size: 14px;
+    font-weight: 700;
 }
 QLabel#lensOfflineHint {
-    color: #786d91;
-    font-size: 9px;
+    color: #625975;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 /* ------------------------- Top Data Studio shell ------------------------- */
@@ -133,21 +137,21 @@ QLabel#studioMark {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
         stop:0 #8c72ff, stop:1 #6547d8);
     border: 1px solid #a492ff;
-    border-radius: 13px;
-    font-size: 18px;
-    font-weight: 900;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
 }
 QLabel#studioBrand {
     color: #f4f1ff;
     background: transparent;
-    font-size: 14px;
-    font-weight: 850;
-    letter-spacing: 1px;
+    font-size: 21px;
+    font-weight: 700;
 }
 QLabel#studioBrandSub {
-    color: #a9a2c6;
+    color: #beb7d6;
     background: transparent;
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 500;
 }
 QFrame#datasetCapsule {
     background: rgba(255,255,255,16);
@@ -155,16 +159,16 @@ QFrame#datasetCapsule {
     border-radius: 10px;
 }
 QLabel#datasetEyebrow {
-    color: #9f96c7;
+    color: #c1b9dc;
     background: transparent;
-    font-size: 9px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 600;
 }
 QLabel#datasetValue {
     color: #f3f0ff;
     background: transparent;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
 }
 QPushButton#headerPrimary {
     background: #8066ef;
@@ -195,9 +199,10 @@ QPushButton#modeButton {
     background: transparent;
     border: none;
     border-radius: 8px;
-    padding: 5px 8px 7px 8px;
-    color: #767188;
-    font-size: 11px;
+    padding: 7px 9px 9px 9px;
+    color: #625d6f;
+    font-size: 15px;
+    font-weight: 600;
     text-align: center;
 }
 QPushButton#modeButton:hover {
@@ -217,28 +222,29 @@ QFrame#pageBanner {
     border-bottom: 1px solid #e8e5ef;
 }
 QLabel#pageCode {
-    color: #8e82bd;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 1px;
+    color: #7867b0;
+    font-size: 14px;
+    font-weight: 700;
 }
 QLabel#pageTitle {
     color: #24213a;
-    font-size: 23px;
-    font-weight: 850;
+    font-size: 26px;
+    font-weight: 700;
 }
 QLabel#pageHint {
-    color: #898398;
-    font-size: 11px;
+    color: #6f6879;
+    font-size: 14px;
+    font-weight: 500;
 }
 QLabel#heading {
     color: #28233f;
     font-size: 20px;
-    font-weight: 850;
+    font-weight: 700;
 }
 QLabel#subtitle {
-    color: #746e84;
-    font-size: 12px;
+    color: #625b6d;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 /* ------------------------- Home studio dashboard ------------------------- */
@@ -249,22 +255,22 @@ QFrame#homeHero {
     border-radius: 17px;
 }
 QLabel#heroEyebrow {
-    color: #d8cffd;
+    color: #e3dcfa;
     background: transparent;
-    font-size: 9px;
-    font-weight: 900;
-    letter-spacing: 1px;
+    font-size: 13px;
+    font-weight: 600;
 }
 QLabel#heroTitle {
     color: white;
     background: transparent;
-    font-size: 29px;
-    font-weight: 900;
+    font-size: 27px;
+    font-weight: 700;
 }
 QLabel#heroSubtitle {
-    color: #e6e1f7;
+    color: #f0ecfb;
     background: transparent;
-    font-size: 12px;
+    font-size: 15px;
+    font-weight: 500;
 }
 QFrame#homeContext {
     background: rgba(19,17,33,90);
@@ -273,25 +279,25 @@ QFrame#homeContext {
     min-width: 255px;
 }
 QLabel#contextEyebrow {
-    color: #c1b7ec;
+    color: #d4caf3;
     background: transparent;
-    font-size: 9px;
-    font-weight: 900;
+    font-size: 13px;
+    font-weight: 600;
 }
 QLabel#contextTitle {
     color: white;
     background: transparent;
-    font-size: 18px;
-    font-weight: 850;
+    font-size: 19px;
+    font-weight: 700;
 }
-QLabel#contextHint { color: #d1cae8; background: transparent; font-size: 10px; }
+QLabel#contextHint { color: #e2dced; background: transparent; font-size: 14px; font-weight: 500; }
 QLabel#contextBadge {
     color: #2f2459;
-    background: #dcd1ff;
+    background: #e3dbff;
     border-radius: 7px;
-    padding: 7px 10px;
-    font-size: 11px;
-    font-weight: 850;
+    padding: 8px 11px;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 QFrame#metricTile {
@@ -303,17 +309,17 @@ QFrame#metricTile[accent="violet"] { border-top: 3px solid #795ce8; }
 QFrame#metricTile[accent="amber"]  { border-top: 3px solid #f0a54f; }
 QFrame#metricTile[accent="rose"]   { border-top: 3px solid #d97498; }
 QFrame#metricTile[accent="mint"]   { border-top: 3px solid #3aa995; }
-QLabel#metricCaption { color: #8a8494; font-size: 10px; font-weight: 750; }
-QLabel#metricValue { color: #29233f; font-size: 27px; font-weight: 900; }
-QLabel#metricFoot { color: #9a94a4; font-size: 9px; }
+QLabel#metricCaption { color: #625d69; font-size: 14px; font-weight: 600; }
+QLabel#metricValue { color: #29233f; font-size: 28px; font-weight: 700; }
+QLabel#metricFoot { color: #746e7b; font-size: 13px; font-weight: 500; }
 
 QFrame#studioPanel {
     background: #ffffff;
     border: 1px solid #e6e2ec;
     border-radius: 13px;
 }
-QLabel#panelTitle { color: #2a263e; font-size: 16px; font-weight: 850; }
-QLabel#panelHint { color: #918b9e; font-size: 10px; }
+QLabel#panelTitle { color: #2a263e; font-size: 18px; font-weight: 700; }
+QLabel#panelHint { color: #686170; font-size: 13px; font-weight: 500; }
 QFrame#pipelineStep {
     background: #faf9fc;
     border: 1px solid #ece8f1;
@@ -323,20 +329,20 @@ QFrame#pipelineStep:hover { background: #f6f2ff; border-color: #d8cdfa; }
 QLabel#pipelineNumber {
     color: white;
     background: #7057d7;
-    border-radius: 9px;
-    font-size: 11px;
-    font-weight: 900;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
 }
-QLabel#pipelineTitle { color: #343047; font-size: 12px; font-weight: 800; }
-QLabel#pipelineHint { color: #8e8999; font-size: 9px; }
+QLabel#pipelineTitle { color: #343047; font-size: 15px; font-weight: 700; }
+QLabel#pipelineHint { color: #655f6e; font-size: 13px; font-weight: 500; }
 QPushButton#pipelineJump {
     background: #efeaff;
     color: #654bc5;
     border: 1px solid #dcd2ff;
     border-radius: 7px;
-    padding: 6px 10px;
-    font-size: 10px;
-    font-weight: 800;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 700;
 }
 QPushButton#pipelineJump:hover { background: #dfd6ff; }
 QFrame#capabilityRow {
@@ -344,8 +350,8 @@ QFrame#capabilityRow {
     border: 1px solid #eeeaf2;
     border-radius: 8px;
 }
-QLabel#capabilityName { color: #5946a7; font-size: 11px; font-weight: 850; }
-QLabel#capabilityHint { color: #8e8999; font-size: 9px; }
+QLabel#capabilityName { color: #5946a7; font-size: 15px; font-weight: 700; }
+QLabel#capabilityHint { color: #655f6e; font-size: 13px; font-weight: 500; }
 
 /* ------------------------- Reusable analysis surfaces ------------------------- */
 QFrame#card {
@@ -355,8 +361,8 @@ QFrame#card {
 }
 QLabel#cardTitle {
     color: #3f3858;
-    font-size: 14px;
-    font-weight: 850;
+    font-size: 18px;
+    font-weight: 700;
 }
 QGroupBox {
     background: #ffffff;
@@ -364,7 +370,8 @@ QGroupBox {
     border-radius: 11px;
     margin-top: 15px;
     padding: 15px 14px 13px 14px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 600;
     color: #4c4563;
 }
 QGroupBox::title {
@@ -379,8 +386,10 @@ QPushButton {
     background: #ffffff;
     border: 1px solid #dcd6e7;
     border-radius: 8px;
-    padding: 8px 13px;
+    padding: 9px 14px;
     color: #4f4864;
+    font-size: 14px;
+    font-weight: 600;
 }
 QPushButton:hover {
     background: #f5f1ff;
@@ -399,6 +408,7 @@ QPushButton#primary:hover { background: #8067e4; border-color: #8067e4; }
 
 QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QListWidget, QTableView {
     background: #ffffff;
+    font-size: 14px;
     border: 1px solid #ddd8e6;
     border-radius: 7px;
     padding: 5px;
@@ -409,7 +419,7 @@ QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus,
 QListWidget:focus, QTableView:focus {
     border: 1px solid #8c73e8;
 }
-QListWidget::item { padding: 5px; border-radius: 4px; }
+QListWidget::item { padding: 8px 7px; border-radius: 4px; }
 QListWidget::item:selected { background: #e9e3ff; color: #503cad; }
 
 QTableView {
@@ -419,7 +429,8 @@ QTableView {
 QHeaderView::section {
     background: #f1edf8;
     color: #655b78;
-    padding: 8px;
+    padding: 10px;
+    font-size: 14px;
     border: none;
     border-right: 1px solid #e2ddea;
     border-bottom: 1px solid #ddd7e6;
@@ -433,8 +444,9 @@ QTabWidget::pane {
 }
 QTabBar::tab {
     background: #f2eff7;
-    color: #777083;
-    padding: 9px 14px;
+    color: #625c6c;
+    padding: 10px 15px;
+    font-size: 14px;
     margin-right: 3px;
     border: 1px solid #e5e0eb;
     border-bottom: none;
@@ -452,8 +464,9 @@ QCheckBox::indicator { width: 16px; height: 16px; }
 
 QStatusBar {
     background: #201c31;
-    color: #bdb6d0;
+    color: #d1cadf;
     border-top: 1px solid #302944;
+    font-size: 13px;
 }
 QStatusBar QLabel { color: #bdb6d0; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 3px; }

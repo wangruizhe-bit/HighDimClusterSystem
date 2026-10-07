@@ -39,6 +39,8 @@ jobs:
           python -m pip install "pyinstaller>=6.11,<7"
       - name: Verify Python UI initialization
         run: python main.py --self-check
+      - name: Capture redesigned Data Studio screenshots
+        run: python -m tools.capture_screenshots
       - name: Build standalone Windows desktop app
         shell: pwsh
         run: |
@@ -65,3 +67,10 @@ jobs:
           path: artifact-check/
       - name: Compare downloaded artifact and start its EXE
         run: python -m tools.verify_release --original dist/HighDimClusterSystem --downloaded artifact-check
+      - name: Upload redesigned interface screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: HighDimClusterSystem-V1.0-Redesigned-Screenshots
+          path: screenshots/*.png
+          retention-days: 30
+          if-no-files-found: error

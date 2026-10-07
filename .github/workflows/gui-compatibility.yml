@@ -91,3 +91,54 @@ jobs:
           $code = $LASTEXITCODE
           Pop-Location
           exit $code
+
+
+  legacy-frozen:
+    name: legacy frozen executable with original Agg packaging
+    runs-on: windows-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    env:
+      QT_QPA_PLATFORM: windows
+      QT_API: pyside6
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install former GUI stack and PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install --upgrade --force-reinstall "PySide6==6.11.2" "matplotlib==3.11.2" "numpy==2.5.3"
+          python -m pip install "pyinstaller==6.16.0"
+      - name: Create reported-crash source tree
+        shell: pwsh
+        run: |
+          git worktree add legacy-frozen-src f39f7a95e9207386cd116130f6dc65d6f4014e46
+          Copy-Item tools\legacy_pca_repro.py legacy-frozen-src\tools\legacy_pca_repro.py -Force
+      - name: Build legacy diagnostic executable with original Agg environment
+        shell: pwsh
+        run: |
+          Push-Location legacy-frozen-src
+          python -m PyInstaller --noconfirm --clean --onedir --console --name LegacyPCARepro --collect-all sklearn tools\legacy_pca_repro.py *> legacy-pyinstaller.log
+          $code = $LASTEXITCODE
+          Get-Content legacy-pyinstaller.log
+          Pop-Location
+          if ($code -ne 0) { throw "legacy diagnostic executable build failed" }
+      - name: Run legacy frozen reproduction and preserve native exit code
+        shell: pwsh
+        run: |
+          python -c "import subprocess; p=subprocess.run([r'legacy-frozen-src\dist\LegacyPCARepro\LegacyPCARepro.exe'], check=False, timeout=600); print('LEGACY_FROZEN_EXIT_CODE=', p.returncode); open('legacy-frozen-exit.txt','w',encoding='utf-8').write(str(p.returncode))"
+      - name: Upload legacy reproduction diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-frozen-reproduction-diagnostics
+          path: |
+            legacy-frozen-exit.txt
+            legacy-frozen-src/legacy-pyinstaller.log
+          retention-days: 14
+          if-no-files-found: warn

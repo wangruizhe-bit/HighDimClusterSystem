@@ -99,8 +99,6 @@ def run_pca_gui_self_check(window, *, cycles: int = 20) -> dict:
                 print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_draw", flush=True)
             app.processEvents()
             print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_draw_events", flush=True)
-            _grab(window, f"PCA cycle={cycle + 1}, tab={index}")
-            print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_grab", flush=True)
 
     # 额外快速切换 20 轮，模拟用户快速点击标签。
     for cycle in range(20):
@@ -113,11 +111,12 @@ def run_pca_gui_self_check(window, *, cycles: int = 20) -> dict:
             if canvas is not None:
                 canvas.draw()
                 print(f"PCA_RAPID cycle={cycle + 1} tab={index} phase=after_draw", flush=True)
-        _grab(window, f"PCA rapid tabs={cycle + 1}")
+        _events(0.02)
 
     page.tabs.setCurrentIndex(page.SCATTER_3D_TAB)
+    app.processEvents()
     page.scatter3d_canvas.draw()
-    _grab(window, "PCA final 3D")
+    app.processEvents()
 
     return {
         "pca_cycles": cycles,

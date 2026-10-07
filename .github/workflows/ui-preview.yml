@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      QT_QPA_PLATFORM: offscreen
+      QT_QPA_PLATFORM: xcb
       MPLBACKEND: Agg
     steps:
       - uses: actions/checkout@v4
@@ -33,10 +33,10 @@ jobs:
       - name: Install Qt runtime, Chinese fonts and Python dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 fonts-noto-cjk
+          sudo apt-get install -y xvfb xauth libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 fonts-noto-cjk
           python -m pip install -r requirements.txt
-      - name: Generate genuine Data Studio screenshots
-        run: python -m tools.capture_screenshots
+      - name: Generate genuine Data Studio screenshots under a virtual X display
+        run: xvfb-run -a -s "-screen 0 1600x1000x24" python -m tools.capture_screenshots
       - name: Upload Data Studio UI preview
         uses: actions/upload-artifact@v4
         with:

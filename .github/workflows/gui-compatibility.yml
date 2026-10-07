@@ -1,0 +1,86 @@
+name: GUI Compatibility Diagnostics
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/gui-compatibility.yml"
+      - "app/plot_canvas.py"
+      - "app/pca_page.py"
+      - "app/diagnostics.py"
+      - "main.py"
+      - "tools/gui_self_check.py"
+      - "tools/legacy_pca_repro.py"
+      - "requirements.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gui-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  improved-stack:
+    name: improved implementation (${{ matrix.stack }})
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: [pinned-stable, former-latest]
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_API: pyside6
+      MPLBACKEND: QtAgg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned base stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Override former GUI stack
+        if: matrix.stack == 'former-latest'
+        run: |
+          python -m pip install --upgrade --force-reinstall "PySide6==6.11.2" "matplotlib==3.11.2" "numpy==2.5.3"
+      - name: Report versions
+        run: |
+          python -c "import PySide6, matplotlib, numpy; print('PySide6', PySide6.__version__); print('Matplotlib', matplotlib.__version__); print('NumPy', numpy.__version__); print('Backend', matplotlib.get_backend())"
+      - name: Run real PCA Qt stress
+        run: python main.py --pca-gui-self-check
+
+  legacy-current:
+    name: legacy implementation on former 6.11.2 / 3.11.2 / 2.5.3
+    runs-on: windows-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_API: pyside6
+      MPLBACKEND: QtAgg
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install former GUI stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install --upgrade --force-reinstall "PySide6==6.11.2" "matplotlib==3.11.2" "numpy==2.5.3"
+      - name: Restore PCA and PlotCanvas implementation from reported-crash generation
+        shell: pwsh
+        run: |
+          git show f39f7a95e9207386cd116130f6dc65d6f4014e46:app/plot_canvas.py | Set-Content -Encoding utf8 app/plot_canvas.py
+          git show f39f7a95e9207386cd116130f6dc65d6f4014e46:app/pca_page.py | Set-Content -Encoding utf8 app/pca_page.py
+      - name: Report versions
+        run: |
+          python -c "import PySide6, matplotlib, numpy; print('PySide6', PySide6.__version__); print('Matplotlib', matplotlib.__version__); print('NumPy', numpy.__version__); print('Backend', matplotlib.get_backend())"
+      - name: Run legacy PCA reproduction loop
+        run: python -m tools.legacy_pca_repro

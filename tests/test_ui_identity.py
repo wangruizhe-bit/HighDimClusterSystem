@@ -4,7 +4,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
 def test_data_studio_shell_is_horizontal_and_has_no_sidebar():
-    from PySide6.QtWidgets import QApplication, QFrame, QPushButton
+    from PySide6.QtWidgets import QApplication, QFrame, QLabel
     from app.main_window import MainWindow
     app = QApplication.instance() or QApplication([])
     window = MainWindow()
@@ -22,9 +22,9 @@ def test_data_studio_shell_is_horizontal_and_has_no_sidebar():
         assert window.nav_buttons[index].isChecked()
         assert window.nav_buttons[index].property("active") is True
 
-    assert "HIGH-DIMENSIONAL DATA STUDIO" in window.studio_header.findChildren(
-        type(window.studio_header.dataset_text)
-    )[1].text() or True
+    brands = window.studio_header.findChildren(QLabel, "studioBrand")
+    assert len(brands) == 1
+    assert brands[0].text() == "HIGH-DIMENSIONAL DATA STUDIO"
     window.close()
 
 

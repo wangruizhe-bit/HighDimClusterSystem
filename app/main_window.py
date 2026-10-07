@@ -19,7 +19,7 @@ from app.results_page import ResultsPage
 from app.session import Session
 from app.table_model import FrameTableModel
 from app.studio_components import (
-    MetricGrid, MetricTile, ModeStrip, PageBanner, PipelineStep, StudioHeader,
+    DataLensRail, MetricGrid, MetricTile, ModeStrip, PageBanner, PipelineStep, StudioHeader,
 )
 
 PAGES = [
@@ -103,7 +103,13 @@ class MainWindow(QMainWindow):
 
         self.stack = QStackedWidget()
         self.stack.setObjectName("studioCanvas")
-        shell.addWidget(self.stack, 1)
+        self.data_lens = DataLensRail(self)
+        content_row = QHBoxLayout()
+        content_row.setContentsMargins(0, 0, 0, 0)
+        content_row.setSpacing(0)
+        content_row.addWidget(self.stack, 1)
+        content_row.addWidget(self.data_lens)
+        shell.addLayout(content_row, 1)
 
         makers = [
             self.make_home, self.make_data_page, self.make_feature_page,
@@ -135,9 +141,24 @@ class MainWindow(QMainWindow):
             return
         self.stack.setCurrentIndex(number)
         self.mode_strip.select(number)
+        self.data_lens.update_mode(number, PAGES[number])
         self.statusBar().showMessage(
             f"DATA STUDIO  ·  {number + 1:02d}  ·  {PAGES[number]}", 4000
         )
+
+    def _result_count(self):
+        return (
+            (1 if self.session.feature_result is not None else 0)
+            + (1 if self.session.latest_pca is not None else 0)
+            + len(self.session.reduction_results)
+            + len(self.session.cluster_results)
+            + (1 if self.session.k_search_result is not None else 0)
+        )
+
+    def _refresh_data_lens(self):
+        summary = self.session.data.summary()
+        self.data_lens.update_data(summary, self._result_count())
+        self.studio_header.update_dataset(summary)
 
     def inform(self, message):
         QMessageBox.information(self, "提示", message)
@@ -268,13 +289,7 @@ class MainWindow(QMainWindow):
                 f"{summary['numeric']} 个数值变量"
                 if imported else "导入 CSV 或 Excel 后开始分析"
             )
-            result_count = (
-                (1 if self.session.feature_result is not None else 0)
-                + (1 if self.session.latest_pca is not None else 0)
-                + len(self.session.reduction_results)
-                + len(self.session.cluster_results)
-                + (1 if self.session.k_search_result is not None else 0)
-            )
+            result_count = self._result_count()
             self.home_result_count.setText(f"{result_count} 个分析结果")
             self.metric_tiles["rows"].set_value(summary["rows"], "当前工作数据")
             self.metric_tiles["numeric"].set_value(summary["numeric"], "可参与降维与聚类")
@@ -282,6 +297,7 @@ class MainWindow(QMainWindow):
             self.metric_tiles["results"].set_value(result_count, "当前数据版本结果快照")
         self.refreshers.append(update)
         self.session.results_changed.connect(update)
+        self.session.results_changed.connect(self._refresh_data_lens)
 
     def make_data_page(self, layout):
         info, pane = card("导入与预处理")
@@ -558,3 +574,4 @@ class MainWindow(QMainWindow):
     def refresh_all(self):
         for refresh in self.refreshers:
             refresh()
+        self._refresh_data_lens()

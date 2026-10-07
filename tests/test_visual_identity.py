@@ -54,7 +54,70 @@ def test_data_lens_tracks_dataset_and_mode(tmp_path):
 
     window.goto(5)
     app.processEvents()
-    assert window.data_lens.mode_code.text() == "06 / CLUSTER"
+    assert window.data_lens.mode_code.text() == "06"
     assert window.data_lens.mode_title.text() == "聚类分析"
+
+    window.close()
+
+
+def test_readable_typography_and_chinese_copy():
+    from app.styles import STYLE
+    import re
+
+    sizes = [int(x) for x in re.findall(r"font-size:\s*(\d+)px", STYLE)]
+    assert sizes
+    assert min(sizes) >= 13
+
+    app = QApplication.instance() or QApplication([])
+    app.setStyleSheet(STYLE)
+    window = MainWindow()
+    window.resize(1920, 1080)
+    window.show()
+    app.processEvents()
+
+    assert window.studio_header.findChild(QFrame, "datasetCapsule") is not None
+    assert window.studio_header.dataset_text.fontMetrics().height() >= 13
+    assert "高维数据降维与聚类分析系统" in window.windowTitle()
+    assert "CURRENT DATASET" not in window.studio_header.findChildren(type(window.data_lens.mode_title))[0].text()
+
+    banned = {
+        "DATA LENS", "DATA QUALITY", "ANALYSIS SNAPSHOTS", "CURRENT MODE",
+        "WORKSPACE STATUS", "DATA DISCOVERY / DIMENSION REDUCTION / CLUSTERING",
+    }
+    all_text = "\n".join(
+        widget.text() for widget in window.findChildren(type(window.data_lens.mode_title))
+        if hasattr(widget, "text")
+    )
+    for phrase in banned:
+        assert phrase not in all_text
+
+    for button in window.nav_buttons:
+        metrics = button.fontMetrics()
+        lines = button.text().splitlines()
+        assert max(metrics.horizontalAdvance(line) for line in lines) <= button.width() - 12
+        assert metrics.lineSpacing() * len(lines) <= button.height() - 6
+
+    window.close()
+
+
+def test_125_percent_equivalent_workspace_keeps_key_controls_visible():
+    from app.styles import STYLE
+    app = QApplication.instance() or QApplication([])
+    app.setStyleSheet(STYLE)
+    window = MainWindow()
+    # 1920x1080 at 125% Windows scaling is approximately 1536x864 logical pixels.
+    window.resize(1536, 864)
+    window.show()
+    app.processEvents()
+
+    assert window.stack.width() >= 900
+    assert window.data_lens.width() >= 280
+    for index in range(8):
+        window.goto(index)
+        app.processEvents()
+        assert window.stack.currentIndex() == index
+    for button in window.nav_buttons:
+        assert button.height() >= 55
+        assert button.width() >= 95
 
     window.close()

@@ -1,5 +1,7 @@
 """八页中文界面：统计、PCA、降维、聚类与评价均接入真实计算。"""
 from functools import partial
+from pathlib import Path
+import sys
 
 import pandas as pd
 from PySide6.QtCore import Qt
@@ -30,6 +32,12 @@ NAV_TITLES = [
     "概览", "数据准备", "特征探索", "PCA",
     "多方法降维", "聚类", "模型评价", "结果中心",
 ]
+
+
+def resource_path(*parts):
+    """兼容源码运行和 PyInstaller onedir 的只读资源路径。"""
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+    return base.joinpath(*parts)
 
 
 def label(text, kind=None):
@@ -191,6 +199,7 @@ class MainWindow(QMainWindow):
         hero_actions = QHBoxLayout()
         hero_actions.setSpacing(10)
         hero_actions.addWidget(button("＋  导入数据", self.open_file, True))
+        hero_actions.addWidget(button("加载示例数据", self.load_demo_data))
         hero_actions.addWidget(button("探索变量", lambda: self.goto(2)))
         hero_actions.addWidget(button("开始聚类", lambda: self.goto(5)))
         hero_actions.addStretch(1)
@@ -298,6 +307,7 @@ class MainWindow(QMainWindow):
         info, pane = card("导入与预处理")
         actions = QHBoxLayout()
         actions.addWidget(button("导入 CSV / Excel", self.open_file, True))
+        actions.addWidget(button("加载示例数据", self.load_demo_data))
         actions.addWidget(button("恢复原始数据", lambda: self.guarded(self.session.restore)))
         actions.addStretch()
         pane.addLayout(actions)
@@ -351,6 +361,19 @@ class MainWindow(QMainWindow):
             self, "选择数据文件", "", "表格文件 (*.csv *.xlsx *.xls)")
         if file:
             self.guarded(lambda: self.session.load(file))
+
+    def load_demo_data(self):
+        """载入内置 90 样本 × 8 数值特征示例数据，便于直接体验完整流程。"""
+        path = resource_path("data", "demo_high_dimensional.csv")
+        if not path.is_file():
+            self.fail("内置示例数据文件缺失，请重新下载完整软件包。")
+            return
+        self.guarded(lambda: self.session.load(str(path)))
+        if self.session.data.current_data is not None:
+            self.statusBar().showMessage(
+                "已加载示例数据：90 个样本、8 个数值特征、3 个已知分组。", 9000
+            )
+            self.goto(1)
 
     def preprocess(self, name, operation):
         def run():

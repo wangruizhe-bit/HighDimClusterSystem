@@ -46,8 +46,9 @@ jobs:
       - name: Build standalone Windows desktop app
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onedir --windowed --name HighDimClusterSystem --collect-all sklearn --add-data "data/sample_data.csv;data" main.py
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --name HighDimClusterSystem --collect-all sklearn --add-data "data;data" main.py
           if ($LASTEXITCODE -ne 0) { throw "Windows executable build failed" }
+          Copy-Item "data\demo_high_dimensional.csv" "dist\HighDimClusterSystem\demo_high_dimensional.csv" -Force
       - name: Test packaged executable startup
         shell: pwsh
         run: |

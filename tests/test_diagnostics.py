@@ -11,7 +11,10 @@ def test_python_plot_exception_is_written_to_crash_log(tmp_path, monkeypatch):
     from app.plot_canvas import PlotCanvas
 
     app = QApplication.instance() or QApplication([])
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    if os.name == "nt":
+        monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    else:
+        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
     monkeypatch.setenv("HIGHDIM_SELF_CHECK", "1")
 
     canvas = PlotCanvas()

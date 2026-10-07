@@ -43,11 +43,7 @@ class EvaluationPage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(13)
-        self.heading = QLabel(
-            "聚类质量指标：Silhouette（越高越好）、Calinski–Harabasz（通常越高越好）、"
-            "Davies–Bouldin（通常越低越好）。DBSCAN 评价时排除噪声样本，"
-            "因此与非密度聚类的评分还应综合比较噪声比例与样本覆盖。"
-        )
+        self.heading = QLabel("Silhouette、CH 越高通常越好，DB 越低通常越好；DBSCAN 评分不含噪声。")
         self.heading.setWordWrap(True)
         root.addWidget(self.heading)
 
@@ -72,7 +68,7 @@ class EvaluationPage(QWidget):
         left = QVBoxLayout()
         left.addWidget(QLabel("参与 K 扫描的数值变量（不选默认全部）"))
         self.variables = QListWidget()
-        self.variables.setMaximumHeight(158)
+        self.variables.setMaximumHeight(190)
         self.variables.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
         left.addWidget(self.variables)
         s_lay.addLayout(left, 3)
@@ -105,10 +101,7 @@ class EvaluationPage(QWidget):
         s_lay.addLayout(right, 2)
         root.addWidget(selection)
 
-        self.search_summary = QLabel(
-            "肘部法提供惯性 SSE 随 K 的变化曲线；"
-            "轮廓系数峰值为辅助建议，不保证是唯一正确的 K。"
-        )
+        self.search_summary = QLabel("SSE 肘部曲线与轮廓系数用于辅助选择 K 值。")
         self.search_summary.setWordWrap(True)
         root.addWidget(self.search_summary)
         self.search_table = QTableView()

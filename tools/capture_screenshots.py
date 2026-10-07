@@ -11,7 +11,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QFont, QImage, QPainter
 from PySide6.QtWidgets import QApplication
 
@@ -41,7 +41,7 @@ def render_window(window, target: Path, scale: float):
     painter = QPainter(image)
     try:
         painter.scale(scale, scale)
-        window.render(painter)
+        window.render(painter, QPoint())
     finally:
         painter.end()
     if not image.save(str(target), "PNG"):

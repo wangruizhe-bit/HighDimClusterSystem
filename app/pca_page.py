@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
     QAbstractItemView, QCheckBox, QComboBox, QDoubleSpinBox,
     QGridLayout, QGroupBox, QLabel, QListWidget,
@@ -33,6 +34,7 @@ class PCAPage(QWidget):
             self.SCATTER_2D_TAB: True,
             self.SCATTER_3D_TAB: True,
         }
+        self._plot_generation = 0
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -128,6 +130,7 @@ class PCAPage(QWidget):
         self.threshold.setEnabled(current == "threshold")
 
     def _mark_plots_dirty(self):
+        self._plot_generation += 1
         for key in self._plot_dirty:
             self._plot_dirty[key] = True
 
@@ -220,6 +223,20 @@ class PCAPage(QWidget):
             return
         if not self._plot_dirty[index]:
             return
+        # currentChanged 在 QTabWidget 正在切换可见控件时触发。
+        # 延后到下一轮事件循环，避免在 show/hide 过程中同步触发 Matplotlib paint。
+        generation = self._plot_generation
+        QTimer.singleShot(
+            0, lambda idx=index, gen=generation: self._render_plot_tab(idx, gen)
+        )
+
+    def _render_plot_tab(self, index, generation):
+        if generation != self._plot_generation:
+            return
+        if self.result is None or self.tabs.currentIndex() != index:
+            return
+        if index not in self._plot_dirty or not self._plot_dirty[index]:
+            return
         actions = {
             self.VARIANCE_TAB: ("PCA 方差贡献率图", self.draw_variance),
             self.SCATTER_2D_TAB: ("PCA 二维得分图", self.draw_scores2d),
@@ -253,7 +270,7 @@ class PCAPage(QWidget):
             right.set_ylim(0, 105)
             axes.set_title("PCA 方差贡献率与累计贡献率")
 
-        return canvas.safe_update("PCA 方差贡献率图", build, force_draw=True)
+        return canvas.safe_update("PCA 方差贡献率图", build, force_draw=False)
 
     def draw_scores2d(self, result):
         if result.chosen_components < 2:
@@ -261,8 +278,6 @@ class PCAPage(QWidget):
                 "只保留了一个主成分；请将 k 设为至少 2",
                 request_draw=self.scatter2d_canvas.isVisible(),
             )
-            if self.scatter2d_canvas.isVisible():
-                self.scatter2d_canvas.draw()
             return True
 
         score = result.score_table
@@ -283,7 +298,7 @@ class PCAPage(QWidget):
             ax.grid(alpha=.15)
 
         return self.scatter2d_canvas.safe_update(
-            "PCA 二维得分图", build, force_draw=True
+            "PCA 二维得分图", build, force_draw=False
         )
 
     def draw_scores3d(self, result):
@@ -292,8 +307,6 @@ class PCAPage(QWidget):
                 "需要至少三个保留主成分；请将 k 设为至少 3",
                 request_draw=self.scatter3d_canvas.isVisible(),
             )
-            if self.scatter3d_canvas.isVisible():
-                self.scatter3d_canvas.draw()
             return True
 
         score = result.score_table

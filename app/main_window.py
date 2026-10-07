@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         # 第三个软著采用独立的 Data Studio 结构：
         # 深色品牌顶栏 + 横向模式导航 + 全宽分析画布。
         self.studio_header = StudioHeader(
-            lambda: self.goto(1),
+            self.open_file,
             lambda: self.goto(7),
             self,
         )
@@ -161,8 +161,8 @@ class MainWindow(QMainWindow):
         copy.addWidget(label("DATA DISCOVERY / DIMENSION REDUCTION / CLUSTERING", "heroEyebrow"))
         copy.addWidget(label("从高维数据中发现结构", "heroTitle"))
         copy.addWidget(label(
-            "以真实数据为起点，完成清洗、统计探索、PCA、多方法降维、聚类与模型评价。"
-            "第三个软件采用独立的数据工作室界面，不沿用前两个软著的导航与首页结构。",
+            "以真实数据为起点，完成清洗、统计探索、PCA、多方法降维、聚类与模型评价，"
+            "在统一工作区中追踪数据状态、分析过程与可导出结果。",
             "heroSubtitle"
         ))
         hero_actions = QHBoxLayout()

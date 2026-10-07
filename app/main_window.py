@@ -6,10 +6,9 @@ import sys
 import pandas as pd
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QAbstractItemView, QCheckBox, QComboBox, QFileDialog, QFrame, QGridLayout,
-    QGroupBox, QHBoxLayout, QLabel, QListWidget, QMainWindow, QMessageBox,
-    QPushButton, QScrollArea, QSizePolicy, QSpinBox, QDoubleSpinBox, QStackedWidget,
-    QTableView, QVBoxLayout, QWidget,
+    QAbstractItemView, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel,
+    QLayout, QListWidget, QMainWindow, QMessageBox, QPushButton, QScrollArea,
+    QSizePolicy, QStackedWidget, QTableView, QVBoxLayout, QWidget,
 )
 from core import preprocessing, statistics
 from app.plot_canvas import PlotCanvas
@@ -96,8 +95,7 @@ class MainWindow(QMainWindow):
         shell.setContentsMargins(0, 0, 0, 0)
         shell.setSpacing(0)
 
-        # 第三个软著采用独立的 Data Studio 结构：
-        # 深色品牌顶栏 + 横向模式导航 + 全宽分析画布。
+        # Data Studio 主界面：品牌顶栏、横向模式导航、分析画布和数据概览。
         self.studio_header = StudioHeader(
             self.open_file,
             lambda: self.goto(7),
@@ -116,7 +114,9 @@ class MainWindow(QMainWindow):
         content_row.setContentsMargins(0, 0, 0, 0)
         content_row.setSpacing(0)
         content_row.addWidget(self.stack, 1)
-        content_row.addWidget(self.data_lens)
+        content_row.addWidget(self.data_lens, 0)
+        content_row.setStretch(0, 1)
+        content_row.setStretch(1, 0)
         shell.addLayout(content_row, 1)
 
         makers = [
@@ -131,12 +131,14 @@ class MainWindow(QMainWindow):
             scroll.setFrameShape(QFrame.Shape.NoFrame)
             page = QWidget()
             page.setObjectName("studioPage")
+            page.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             lay = QVBoxLayout(page)
-            lay.setContentsMargins(32, 26, 32, 34)
+            lay.setContentsMargins(26, 24, 26, 32)
             lay.setSpacing(18)
+            lay.setAlignment(Qt.AlignmentFlag.AlignTop)
+            lay.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
             lay.addWidget(PageBanner(index, name))
             maker(lay)
-            lay.addStretch(1)
             scroll.setWidget(page)
             self.stack.addWidget(scroll)
 
@@ -232,14 +234,25 @@ class MainWindow(QMainWindow):
         metrics.add_tiles(list(self.metric_tiles.values()))
         layout.addWidget(metrics)
 
-        body = QHBoxLayout()
-        body.setSpacing(14)
+        self.home_body_widget = QWidget()
+        self.home_body_widget.setObjectName("homeBody")
+        self.home_body_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+        body = QHBoxLayout(self.home_body_widget)
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(16)
+        body.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
 
-        pipeline = QFrame()
-        pipeline.setObjectName("studioPanel")
-        pipeline_layout = QVBoxLayout(pipeline)
-        pipeline_layout.setContentsMargins(22, 20, 22, 20)
+        self.home_pipeline = QFrame()
+        self.home_pipeline.setObjectName("studioPanel")
+        self.home_pipeline.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+        pipeline_layout = QVBoxLayout(self.home_pipeline)
+        pipeline_layout.setContentsMargins(24, 22, 24, 24)
         pipeline_layout.setSpacing(12)
+        pipeline_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         pipeline_layout.addWidget(label("分析路径", "panelTitle"))
         pipeline_layout.addWidget(label("常用分析流程", "panelHint"))
         steps = [
@@ -248,19 +261,26 @@ class MainWindow(QMainWindow):
             (3, "识别类别", "K-means · 层次聚类 · DBSCAN", 5),
             (4, "评价与交付", "质量指标 · K 值 · 结果导出", 6),
         ]
+        self.home_pipeline_steps = []
         for number, title, hint, target in steps:
-            pipeline_layout.addWidget(PipelineStep(
+            step = PipelineStep(
                 number, title, hint,
                 lambda checked=False, page=target: self.goto(page)
-            ))
-        pipeline_layout.addStretch(1)
-        body.addWidget(pipeline, 3)
+            )
+            step.setMinimumHeight(72)
+            self.home_pipeline_steps.append(step)
+            pipeline_layout.addWidget(step)
+        body.addWidget(self.home_pipeline, 2)
 
-        capability = QFrame()
-        capability.setObjectName("studioPanel")
-        cap = QVBoxLayout(capability)
-        cap.setContentsMargins(22, 20, 22, 20)
-        cap.setSpacing(12)
+        self.home_capability = QFrame()
+        self.home_capability.setObjectName("studioPanel")
+        self.home_capability.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+        cap = QVBoxLayout(self.home_capability)
+        cap.setContentsMargins(22, 22, 22, 24)
+        cap.setSpacing(10)
+        cap.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         cap.addWidget(label("分析能力", "panelTitle"))
         cap.addWidget(label("当前可用方法", "panelHint"))
         capabilities = [
@@ -270,18 +290,25 @@ class MainWindow(QMainWindow):
             ("Silhouette · CH · DB", "聚类质量与 K 值评价"),
             ("CSV · Excel · HTML", "结果表、报告和图像导出"),
         ]
+        self.home_capability_rows = []
         for name, hint in capabilities:
             line = QFrame()
             line.setObjectName("capabilityRow")
+            line.setMinimumHeight(54)
             row = QHBoxLayout(line)
-            row.setContentsMargins(14, 11, 14, 11)
-            row.addWidget(label(name, "capabilityName"))
+            row.setContentsMargins(14, 10, 14, 10)
+            row.setSpacing(10)
+            name_label = label(name, "capabilityName")
+            hint_label = label(hint, "capabilityHint")
+            hint_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            row.addWidget(name_label)
             row.addStretch(1)
-            row.addWidget(label(hint, "capabilityHint"))
+            row.addWidget(hint_label)
+            self.home_capability_rows.append(line)
             cap.addWidget(line)
-        cap.addStretch(1)
-        body.addWidget(capability, 2)
-        layout.addLayout(body)
+        body.addWidget(self.home_capability, 1)
+        layout.addWidget(self.home_body_widget)
+        layout.addSpacing(28)
 
         def update():
             summary = self.session.data.summary()
@@ -515,44 +542,6 @@ class MainWindow(QMainWindow):
             self.feature_figure_ready = True
             self.session.results_changed.emit()
         self.guarded(work)
-
-    def settings_box(self, title, fields):
-        group = QGroupBox(title)
-        lay = QGridLayout(group)
-        for row, (name, typ, values) in enumerate(fields):
-            lay.addWidget(label(name), row, 0)
-            if typ == "choice":
-                widget = QComboBox()
-                widget.addItems(values)
-            elif typ == "float":
-                widget = QDoubleSpinBox()
-                widget.setRange(0.001, 100000)
-                widget.setDecimals(3)
-                widget.setValue(float(values))
-            elif typ == "check":
-                widget = QCheckBox()
-                widget.setChecked(bool(values))
-            else:
-                widget = QSpinBox()
-                widget.setRange(1, 100000)
-                widget.setValue(int(values))
-            lay.addWidget(widget, row, 1)
-        return group
-
-    def placeholder(self, layout, title, fields, result_title):
-        panel, pane = card(title)
-        pane.addWidget(self.settings_box("参数设置（第二阶段以后接入计算）", fields))
-        pane.addWidget(button("执行分析", self.not_ready, True))
-        layout.addWidget(panel)
-        panel, pane = card(result_title)
-        pane.addWidget(label("尚无分析结果。本模块将在后续开发阶段接入真实算法。", "subtitle"))
-        canvas = PlotCanvas()
-        canvas.setMinimumHeight(300)
-        pane.addWidget(canvas)
-        layout.addWidget(panel)
-
-    def not_ready(self):
-        self.inform("该分析功能将在后续开发阶段完成；目前没有生成任何模拟计算结果。")
 
     def make_pca_page(self, layout):
         self.pca_page = PCAPage(self.session)

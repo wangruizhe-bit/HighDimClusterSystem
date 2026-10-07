@@ -23,22 +23,30 @@ concurrency:
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       QT_QPA_PLATFORM: offscreen
-      MPLBACKEND: Agg
+      QT_API: pyside6
+      MPLBACKEND: QtAgg
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install application and packaging requirements
+      - name: Install pinned application and packaging requirements
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip install "pyinstaller>=6.11,<7"
+          python -m pip install "pyinstaller==6.16.0"
+      - name: Report frozen GUI stack and backend
+        run: |
+          python -c "import sys, numpy, PySide6, matplotlib; import matplotlib.backends.backend_qtagg; import mpl_toolkits.mplot3d; print('Python', sys.version); print('PySide6', PySide6.__version__); print('Matplotlib', matplotlib.__version__); print('NumPy', numpy.__version__); print('Backend', matplotlib.get_backend())"
       - name: Verify Python UI initialization
         run: python main.py --self-check
+      - name: Stress PCA QtAgg tabs in source build
+        run: python main.py --pca-gui-self-check
+      - name: Scan all PlotCanvas paths in source build
+        run: python main.py --graphics-gui-self-check
       - name: Capture 1920x1080 interface at Windows 100%
         run: python -m tools.capture_screenshots --profile 1080_100
       - name: Capture 1920x1080 interface at Windows 125%
@@ -47,37 +55,67 @@ jobs:
         run: python -m tools.capture_screenshots --profile default
       - name: Capture minimum 1180x760 interface
         run: python -m tools.capture_screenshots --profile minimum
-      - name: Build standalone Windows desktop app
+      - name: Build standalone Windows GUI app with QtAgg and mplot3d
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onedir --windowed --name HighDimClusterSystem --collect-all sklearn --add-data "data;data" main.py
-          if ($LASTEXITCODE -ne 0) { throw "Windows executable build failed" }
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --name HighDimClusterSystem --collect-all sklearn --hidden-import matplotlib.backends.backend_qtagg --hidden-import mpl_toolkits.mplot3d --add-data "data;data" main.py
+          if ($LASTEXITCODE -ne 0) { throw "Windows GUI executable build failed" }
           Copy-Item "data\demo_high_dimensional.csv" "dist\HighDimClusterSystem\demo_high_dimensional.csv" -Force
-      - name: Test packaged executable startup
+      - name: Build console diagnostic executable
         shell: pwsh
         run: |
-          python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--self-check'], timeout=120)"
+          python -m PyInstaller --noconfirm --clean --onedir --console --name HighDimClusterSystem-Debug --distpath dist-debug --workpath build-debug --collect-all sklearn --hidden-import matplotlib.backends.backend_qtagg --hidden-import mpl_toolkits.mplot3d --add-data "data;data" main.py
+          if ($LASTEXITCODE -ne 0) { throw "Windows debug executable build failed" }
+          Copy-Item "data\demo_high_dimensional.csv" "dist-debug\HighDimClusterSystem-Debug\demo_high_dimensional.csv" -Force
+      - name: Test packaged GUI executable startup
+        shell: pwsh
+        run: |
+          python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--self-check'], timeout=180)"
+      - name: Stress packaged GUI executable PCA tabs
+        shell: pwsh
+        run: |
+          python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--pca-gui-self-check'], timeout=420)"
+      - name: Scan all packaged GUI plotting paths
+        shell: pwsh
+        run: |
+          python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--graphics-gui-self-check'], timeout=720)"
+      - name: Verify console diagnostic executable
+        shell: pwsh
+        run: |
+          python -c "import subprocess; subprocess.check_call([r'dist-debug\HighDimClusterSystem-Debug\HighDimClusterSystem-Debug.exe', '--pca-gui-self-check'], timeout=420)"
       - name: Check bundled sklearn native libraries before upload
         run: python -m tools.verify_release --original dist/HighDimClusterSystem
-      - name: Upload runnable Windows program including hidden DLL directories
+      - name: Upload verified Windows GUI program
         uses: actions/upload-artifact@v4
         with:
-          name: HighDimClusterSystem-V1.0-Windows-Fixed
+          name: HighDimClusterSystem-V1.0-Windows-Stable
           path: dist/HighDimClusterSystem/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
-      - name: Download the actual published Windows attachment for verification
+      - name: Upload console diagnostic program
+        uses: actions/upload-artifact@v4
+        with:
+          name: HighDimClusterSystem-V1.0-Windows-Debug
+          path: dist-debug/HighDimClusterSystem-Debug/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Download the actual published Windows GUI attachment
         uses: actions/download-artifact@v4
         with:
-          name: HighDimClusterSystem-V1.0-Windows-Fixed
+          name: HighDimClusterSystem-V1.0-Windows-Stable
           path: artifact-check/
       - name: Compare downloaded artifact and start its EXE
         run: python -m tools.verify_release --original dist/HighDimClusterSystem --downloaded artifact-check
+      - name: Re-run PCA stress on downloaded release artifact
+        shell: pwsh
+        run: |
+          python -c "import subprocess; subprocess.check_call([r'artifact-check\HighDimClusterSystem.exe', '--pca-gui-self-check'], timeout=420)"
       - name: Upload UI visual-check screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: HighDimClusterSystem-V1.0-UI-Polish-Screenshots
+          name: HighDimClusterSystem-V1.0-Stability-Screenshots
           path: screenshots/**/*.png
           retention-days: 30
           if-no-files-found: error

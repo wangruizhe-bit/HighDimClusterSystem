@@ -277,6 +277,7 @@ class MainWindow(QMainWindow):
             self.metric_tiles["missing"].set_value(summary["missing"], "建议在建模前处理")
             self.metric_tiles["results"].set_value(result_count, "当前数据版本结果快照")
         self.refreshers.append(update)
+        self.session.results_changed.connect(update)
 
     def make_data_page(self, layout):
         info, pane = card("导入与预处理")

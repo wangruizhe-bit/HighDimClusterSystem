@@ -28,7 +28,9 @@ def main():
         print(f"--- {name} ---", flush=True)
         if path.is_file():
             try:
-                print(path.read_text(encoding="utf-8", errors="replace"), flush=True)
+                content = path.read_text(encoding="utf-8", errors="replace")
+                safe = content.encode("ascii", "backslashreplace").decode("ascii")
+                print(safe, flush=True)
             except Exception as exc:
                 print(f"cannot read {path}: {exc}", flush=True)
         else:

@@ -1,90 +1,139 @@
-"""生成软件真实界面截图，用于功能核查和操作说明（仅使用人工示例数据）。
+"""生成真实 Qt 界面截图，用于 Windows 1080p / 125% 视觉验收。
 
-Windows CI 在 offscreen Qt 平台运行。截图由实际 QWidget.grab() 产生，不是美化合成图。
+不合成界面，不修改截图内容。100% 使用 1920×1080 逻辑窗口；
+125% 用等效 1536×864 逻辑工作区，并输出为 1920×1080 图片。
 """
+import argparse
 import os
 import sys
 import time
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QImage, QPainter
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QFont, QImage
+
 from app.main_window import MainWindow
 from app.styles import STYLE
 
 
-def pump(app, condition=None, timeout=25.0):
+def pump(app, condition=None, timeout=30.0):
     end = time.monotonic() + timeout
-    if condition is None:
-        # 给布局、字体与 Matplotlib 至少 250ms 完成一次真实事件循环。
-        settle = time.monotonic() + 0.25
-        while time.monotonic() < settle:
-            app.processEvents()
-            time.sleep(0.01)
-        return
+    settle = time.monotonic() + 0.30
     while time.monotonic() < end:
         app.processEvents()
-        if condition():
+        if condition is not None and condition():
             app.processEvents()
             return
-        time.sleep(0.02)
-    raise RuntimeError("截图示例计算未在时限内完成。")
+        if condition is None and time.monotonic() >= settle:
+            return
+        time.sleep(0.015)
+    raise RuntimeError("界面或示例计算未在时限内完成。")
 
 
-def snapshot(app, window, section, name, destination):
+def render_window(window, target: Path, scale: float):
+    width = round(window.width() * scale)
+    height = round(window.height() * scale)
+    image = QImage(width, height, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.white)
+    painter = QPainter(image)
+    try:
+        painter.scale(scale, scale)
+        window.render(painter)
+    finally:
+        painter.end()
+    if not image.save(str(target), "PNG"):
+        raise RuntimeError(f"无法保存界面截图：{target}")
+    if target.stat().st_size < 15000:
+        raise RuntimeError(f"界面截图异常，文件过小：{target}")
+
+
+def snapshot(app, window, section, name, destination, scale):
     window.goto(section)
     pump(app)
     target = destination / name
-    # Windows Server 没有真实桌面。使用纯内存 QImage + QPainter 渲染 QWidget，
-    # 避免 QPixmap 依赖原生窗口缓冲区导致 headless 环境退出。
-    image = QImage(window.size(), QImage.Format.Format_ARGB32_Premultiplied)
-    image.fill(Qt.GlobalColor.white)
-    # QWidget.render() 可直接接收 QPaintDevice；QImage 不依赖原生屏幕。
-    window.render(image)
-    result = image.save(str(target), "PNG")
-    if not result or target.stat().st_size < 10000:
-        raise RuntimeError(f"截图无效或文件过小：{target}")
-    print(f'Screenshot saved: page {section}, size={target.stat().st_size} bytes')
+    render_window(window, target, scale)
+    print(f"Screenshot page={section}, bytes={target.stat().st_size}", flush=True)
+
+
+def validate_key_geometry(window, app):
+    """在截图前检查容易因字号放大产生的截断位置。"""
+    app.processEvents()
+    for button in window.nav_buttons:
+        metrics = button.fontMetrics()
+        lines = button.text().splitlines()
+        max_width = max(metrics.horizontalAdvance(line) for line in lines)
+        required_height = metrics.lineSpacing() * len(lines)
+        if max_width > button.width() - 14:
+            raise RuntimeError(f"顶部导航文字横向截断：{button.text()}")
+        if required_height > button.height() - 8:
+            raise RuntimeError(f"顶部导航文字纵向截断：{button.text()}")
+    labels = [
+        window.studio_header.dataset_text,
+        window.data_lens.dataset_name,
+        window.data_lens.dataset_shape,
+        window.data_lens.mode_title,
+        window.data_lens.mode_hint,
+    ]
+    for widget in labels:
+        if widget.width() <= 20 or widget.height() <= 12:
+            raise RuntimeError(f"关键文字控件尺寸异常：{widget.objectName()}")
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scale", type=float, choices=(1.0, 1.25), default=1.0)
+    args = parser.parse_args()
+
     root = Path(__file__).resolve().parents[1]
-    output = root / "screenshots"
-    output.mkdir(exist_ok=True)
+    profile = "100" if args.scale == 1.0 else "125"
+    output = root / "screenshots" / profile
+    output.mkdir(parents=True, exist_ok=True)
+
     app = QApplication.instance() or QApplication(sys.argv)
-    app.setFont(QFont("Microsoft YaHei", 10))
+    app.setFont(QFont("Microsoft YaHei UI", 11))
     app.setStyleSheet(STYLE)
+
     window = MainWindow()
-    window.resize(1600, 900)
+    # 1920×1080 在 125% 缩放下的常见等效逻辑工作区约为 1536×864。
+    if args.scale == 1.0:
+        window.resize(1920, 1080)
+    else:
+        window.resize(1536, 864)
     window.show()
     pump(app)
+
     window.session.load(str(root / "data" / "sample_data.csv"))
-    snapshot(app, window, 0, "01_home.png", output)
-    snapshot(app, window, 1, "02_data.png", output)
+    validate_key_geometry(window, app)
+    snapshot(app, window, 0, "01_home.png", output, args.scale)
+    snapshot(app, window, 1, "02_data.png", output, args.scale)
+
     window.calculate_stats("describe")
     window.draw_heatmap()
-    snapshot(app, window, 2, "03_statistics.png", output)
+    snapshot(app, window, 2, "03_statistics.png", output, args.scale)
 
     window.pca_page.mode.setCurrentIndex(1)
     window.pca_page.count.setValue(3)
     window.pca_page.run_analysis()
     if window.pca_page.result is None:
-        raise RuntimeError("PCA 实际运行失败。")
+        raise RuntimeError("PCA 示例计算失败。")
     window.pca_page.tabs.setCurrentIndex(4)
-    snapshot(app, window, 3, "04_pca.png", output)
+    snapshot(app, window, 3, "04_pca.png", output, args.scale)
 
     window.cluster_page.method_combo.setCurrentIndex(0)
     window.cluster_page.start_analysis()
     pump(app, lambda: not window.cluster_page.busy)
     if window.cluster_page.current_result is None:
-        raise RuntimeError("K-means 实际运行失败。")
+        raise RuntimeError("K-means 示例计算失败。")
     window.cluster_page.tabs.setCurrentIndex(5)
-    snapshot(app, window, 5, "05_clustering.png", output)
-    snapshot(app, window, 6, "06_evaluation.png", output)
-    snapshot(app, window, 7, "07_results.png", output)
+    snapshot(app, window, 5, "05_clustering.png", output, args.scale)
+    snapshot(app, window, 6, "06_evaluation.png", output, args.scale)
+    snapshot(app, window, 7, "07_results.png", output, args.scale)
+
     window.close()
+    print(f"Visual profile {profile}% passed: {len(list(output.glob('*.png')))} screenshots.", flush=True)
     return 0
 
 
@@ -93,8 +142,6 @@ if __name__ == "__main__":
         sys.exit(main())
     except Exception:
         import traceback
-        # GitHub Windows 控制台编码并不总能输出中文异常文本。
-        # 使用 ASCII backslash 转义保证诊断信息一定能进入 Actions 日志。
         message = traceback.format_exc().encode("ascii", "backslashreplace").decode("ascii")
         print(message, file=sys.stderr, flush=True)
         raise

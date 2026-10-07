@@ -47,11 +47,11 @@ def _grab(window, label: str) -> None:
 
 
 def _show_tab(tab_widget, index: int, canvas, window, label: str) -> None:
+    del window, label
     tab_widget.setCurrentIndex(index)
     _events()
     canvas.draw()
     _events()
-    _grab(window, label)
 
 
 def run_pca_gui_self_check(window, *, cycles: int = 20) -> dict:
@@ -186,7 +186,7 @@ def run_all_graphics_gui_self_check(window) -> dict:
     ]:
         action()
         window.statistics_canvas.draw()
-        _grab(window, f"feature {label}")
+        _events()
 
     # PCA 自检使用 3 轮；完整 20 轮由专用 --pca-gui-self-check 执行。
     pca_result = run_pca_gui_self_check(window, cycles=3)
@@ -211,7 +211,7 @@ def run_all_graphics_gui_self_check(window) -> dict:
         if not reduction.comparison_ready:
             raise RuntimeError("同条件降维方法对比图没有成功绘制。")
         reduction.comparison_canvas.draw()
-        _grab(window, "reduction comparison")
+        _events()
 
     # 聚类：K-means、层次聚类、DBSCAN；层次聚类额外验证树状图。
     _run_cluster(window, method_index=0, label="K-means")
@@ -223,7 +223,7 @@ def run_all_graphics_gui_self_check(window) -> dict:
     evaluation = window.evaluation_page
     evaluation.refresh_cluster_comparison()
     evaluation.score_canvas.draw()
-    _grab(window, "cluster score comparison")
+    _events()
 
     evaluation.k_min.setValue(2)
     evaluation.k_max.setValue(6)
@@ -232,7 +232,7 @@ def run_all_graphics_gui_self_check(window) -> dict:
     if window.session.k_search_result is None:
         raise RuntimeError("K 值扫描没有产生结果。")
     evaluation.k_canvas.draw()
-    _grab(window, "K search curves")
+    _events()
 
     return {
         "feature_plots": 4,

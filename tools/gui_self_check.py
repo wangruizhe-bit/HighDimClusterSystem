@@ -47,11 +47,11 @@ def _grab(window, label: str) -> None:
 
 
 def _show_tab(tab_widget, index: int, canvas, window, label: str) -> None:
-    del window, label
     tab_widget.setCurrentIndex(index)
     _events()
     canvas.draw()
     _events()
+    _grab(window, label)
 
 
 def run_pca_gui_self_check(window, *, cycles: int = 20) -> dict:
@@ -98,6 +98,7 @@ def run_pca_gui_self_check(window, *, cycles: int = 20) -> dict:
                 canvas.draw()
                 print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_draw", flush=True)
             app.processEvents()
+            _grab(window, f"PCA cycle {cycle + 1} tab {index}")
             print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_draw_events", flush=True)
 
     # 额外快速切换 20 轮，模拟用户快速点击标签。
@@ -111,6 +112,7 @@ def run_pca_gui_self_check(window, *, cycles: int = 20) -> dict:
             if canvas is not None:
                 canvas.draw()
                 print(f"PCA_RAPID cycle={cycle + 1} tab={index} phase=after_draw", flush=True)
+            _grab(window, f"PCA rapid {cycle + 1} tab {index}")
         _events(0.02)
 
     page.tabs.setCurrentIndex(page.SCATTER_3D_TAB)

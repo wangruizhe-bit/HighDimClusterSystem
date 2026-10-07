@@ -194,12 +194,14 @@ def run_all_graphics_gui_self_check(window) -> dict:
             label=f"{method_name} 3D",
         )
 
-    # 降维方法对比图：选择最后两项同条件 3D 结果进行二维投影对比。
+    # 降维方法对比图：选择 MDS-3D 与 t-SNE-3D，两者输入条件与目标维度一致。
     reduction = window.dimension_page
-    if reduction.compare_a.count() >= 2:
-        reduction.compare_a.setCurrentIndex(reduction.compare_a.count() - 2)
-        reduction.compare_b.setCurrentIndex(reduction.compare_b.count() - 1)
+    if reduction.compare_a.count() >= 6:
+        reduction.compare_a.setCurrentIndex(3)
+        reduction.compare_b.setCurrentIndex(5)
         reduction.draw_comparison()
+        if not reduction.comparison_ready:
+            raise RuntimeError("同条件降维方法对比图没有成功绘制。")
         reduction.comparison_canvas.draw()
         _grab(window, "reduction comparison")
 

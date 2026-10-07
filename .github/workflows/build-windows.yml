@@ -74,7 +74,8 @@ jobs:
           Get-Content pyinstaller-gui.log
           if ($code -ne 0) { throw "Windows GUI executable build failed" }
           $log = Get-Content pyinstaller-gui.log -Raw
-          if ($log -notmatch "QtAgg") { throw "PyInstaller build log does not include QtAgg backend collection" }
+          if ($log -notmatch "Selected matplotlib backends:.*QtAgg") { throw "PyInstaller selected backend list does not include QtAgg" }
+          if ($log -match "Selected matplotlib backends:\s*\['agg'\]") { throw "PyInstaller still selected only Agg" }
           if ($log -notmatch "backend_qtagg") { throw "PyInstaller did not process backend_qtagg" }
           Copy-Item "data\demo_high_dimensional.csv" "dist\HighDimClusterSystem\demo_high_dimensional.csv" -Force
       - name: Build console diagnostic executable
@@ -85,7 +86,8 @@ jobs:
           Get-Content pyinstaller-debug.log
           if ($code -ne 0) { throw "Windows debug executable build failed" }
           $log = Get-Content pyinstaller-debug.log -Raw
-          if ($log -notmatch "QtAgg") { throw "Debug PyInstaller build log does not include QtAgg backend collection" }
+          if ($log -notmatch "Selected matplotlib backends:.*QtAgg") { throw "Debug PyInstaller selected backend list does not include QtAgg" }
+          if ($log -match "Selected matplotlib backends:\s*\['agg'\]") { throw "Debug PyInstaller still selected only Agg" }
           Copy-Item "data\demo_high_dimensional.csv" "dist-debug\HighDimClusterSystem-Debug\demo_high_dimensional.csv" -Force
       - name: Test packaged GUI executable startup
         env:

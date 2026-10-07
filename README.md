@@ -43,9 +43,16 @@ python main.py
 
 如果 PowerShell 不允许激活虚拟环境，可直接调用 `.venv\Scripts\python.exe -m pip install -r requirements.txt` 和 `.venv\Scripts\python.exe main.py`。
 
+## 界面设计
+
+第三版界面采用独立的 **High-Dimensional Data Studio** 视觉体系：墨紫色品牌顶栏、
+横向模式导航、紫罗兰主强调色以及琥珀/玫瑰/薄荷指标色。首页由数据状态 Hero、
+四个真实数据指标、分析路径和能力矩阵组成。该结构不采用传统固定侧栏，
+也不使用模块下拉式工业控制台。
+
 ## 第一阶段已实现
 
-- PySide6 专业中文桌面布局，左侧导航、顶部页面信息以及 **8 个功能页面**。
+- PySide6 专业中文 Data Studio：**深色品牌顶栏 + 横向八模式导航带 + 全宽分析画布**，共 8 个真实功能页面。
 - CSV（UTF-8 / GB18030）和 Excel（XLSX/XLS）导入，文件格式校验与异常提示。
 - 原始数据与工作数据相互独立，导入、恢复及预处理后跨页面刷新。
 - 数据预览（前 500 行）、行列数量、缺失单元格数、重复行数、数值/非数值字段数量以及每列概况。

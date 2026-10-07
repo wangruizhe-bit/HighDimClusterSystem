@@ -26,6 +26,10 @@ PAGES = [
     "分析首页", "数据管理与预处理", "特征统计分析", "主成分分析（PCA）",
     "多方法降维", "聚类分析", "聚类评价与模型对比", "结果中心",
 ]
+NAV_TITLES = [
+    "概览", "数据准备", "特征探索", "PCA",
+    "多方法降维", "聚类", "模型评价", "结果中心",
+]
 
 
 def label(text, kind=None):
@@ -93,7 +97,7 @@ class MainWindow(QMainWindow):
         )
         shell.addWidget(self.studio_header)
 
-        self.mode_strip = ModeStrip(PAGES, self.goto, self)
+        self.mode_strip = ModeStrip(NAV_TITLES, self.goto, self)
         self.nav_buttons = self.mode_strip.buttons  # 保留公共接口，方便自动化测试和快捷导航。
         shell.addWidget(self.mode_strip)
 

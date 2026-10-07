@@ -171,7 +171,7 @@ class MainWindow(QMainWindow):
         ))
         hero_actions = QHBoxLayout()
         hero_actions.setSpacing(10)
-        hero_actions.addWidget(button("＋  导入数据", lambda: self.goto(1), True))
+        hero_actions.addWidget(button("＋  导入数据", self.open_file, True))
         hero_actions.addWidget(button("探索变量", lambda: self.goto(2)))
         hero_actions.addWidget(button("开始聚类", lambda: self.goto(5)))
         hero_actions.addStretch(1)

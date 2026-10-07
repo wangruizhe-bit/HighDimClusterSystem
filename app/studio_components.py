@@ -192,3 +192,114 @@ class MetricGrid(QWidget):
     def add_tiles(self, tiles):
         for index, tile in enumerate(tiles):
             self.layout_grid.addWidget(tile, index // 4, index % 4)
+
+
+class DataLensRail(QFrame):
+    """第三软著的持久数据上下文栏。
+
+    它不是导航栏：页面切换仍由顶部 Mode Strip 完成。
+    右侧仅展示数据质量、分析进度和当前页面提示，从结构上区别于前两个软著。
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("dataLensRail")
+        self.setFixedWidth(258)
+        box = QVBoxLayout(self)
+        box.setContentsMargins(17, 18, 17, 18)
+        box.setSpacing(11)
+
+        box.addWidget(studio_label("DATA LENS", "lensEyebrow"))
+        box.addWidget(studio_label("数据镜头", "lensTitle"))
+        box.addWidget(studio_label(
+            "始终显示当前工作数据的质量与分析进度，不参与页面导航。",
+            "lensHint"
+        ))
+
+        self.dataset_card = QFrame()
+        self.dataset_card.setObjectName("lensDatasetCard")
+        card = QVBoxLayout(self.dataset_card)
+        card.setContentsMargins(13, 12, 13, 12)
+        card.setSpacing(4)
+        card.addWidget(studio_label("CURRENT DATASET", "lensCardEyebrow"))
+        self.dataset_name = studio_label("尚未导入", "lensDatasetName")
+        card.addWidget(self.dataset_name)
+        self.dataset_shape = studio_label("0 × 0", "lensDatasetShape")
+        card.addWidget(self.dataset_shape)
+        box.addWidget(self.dataset_card)
+
+        box.addWidget(studio_label("DATA QUALITY", "lensSection"))
+        self.rows = self._metric("样本", "0")
+        self.numeric = self._metric("数值变量", "0")
+        self.missing = self._metric("缺失", "0")
+        self.duplicates = self._metric("重复行", "0")
+        for item in (self.rows, self.numeric, self.missing, self.duplicates):
+            box.addWidget(item[0])
+
+        box.addWidget(studio_label("ANALYSIS SNAPSHOTS", "lensSection"))
+        self.result_value = studio_label("0", "lensResultValue")
+        self.result_caption = studio_label("当前数据版本尚无分析结果", "lensResultCaption")
+        result_box = QFrame()
+        result_box.setObjectName("lensResultCard")
+        result_layout = QVBoxLayout(result_box)
+        result_layout.setContentsMargins(13, 11, 13, 11)
+        result_layout.setSpacing(2)
+        result_layout.addWidget(self.result_value)
+        result_layout.addWidget(self.result_caption)
+        box.addWidget(result_box)
+
+        box.addWidget(studio_label("CURRENT MODE", "lensSection"))
+        self.mode_code = studio_label("01 / HOME", "lensModeCode")
+        self.mode_title = studio_label("分析首页", "lensModeTitle")
+        self.mode_hint = studio_label(PAGE_HINTS[0], "lensModeHint")
+        box.addWidget(self.mode_code)
+        box.addWidget(self.mode_title)
+        box.addWidget(self.mode_hint)
+        box.addStretch(1)
+
+        offline = QFrame()
+        offline.setObjectName("lensOffline")
+        offline_layout = QVBoxLayout(offline)
+        offline_layout.setContentsMargins(12, 10, 12, 10)
+        offline_layout.setSpacing(2)
+        offline_layout.addWidget(studio_label("LOCAL COMPUTE", "lensOfflineTitle"))
+        offline_layout.addWidget(studio_label("离线分析 · 数据不上传", "lensOfflineHint"))
+        box.addWidget(offline)
+
+    def _metric(self, title, value):
+        frame = QFrame()
+        frame.setObjectName("lensMetric")
+        row = QHBoxLayout(frame)
+        row.setContentsMargins(11, 7, 11, 7)
+        row.setSpacing(8)
+        caption = studio_label(title, "lensMetricCaption")
+        number = studio_label(value, "lensMetricValue")
+        number.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(caption, 1)
+        row.addWidget(number)
+        return frame, number
+
+    def update_data(self, summary, result_count=0):
+        summary = summary or {}
+        imported = summary.get("rows", 0) > 0
+        self.dataset_name.setText(summary.get("name") if imported else "尚未导入")
+        self.dataset_shape.setText(
+            f"{summary.get('rows', 0)} × {summary.get('columns', 0)}"
+            if imported else "等待数据"
+        )
+        self.rows[1].setText(str(summary.get("rows", 0)))
+        self.numeric[1].setText(str(summary.get("numeric", 0)))
+        self.missing[1].setText(str(summary.get("missing", 0)))
+        self.duplicates[1].setText(str(summary.get("duplicates", 0)))
+        self.result_value.setText(str(result_count))
+        self.result_caption.setText(
+            "当前数据版本的有效分析快照"
+            if result_count else "当前数据版本尚无分析结果"
+        )
+
+    def update_mode(self, index, title):
+        if not 0 <= index < len(PAGE_HINTS):
+            return
+        self.mode_code.setText(f"{index + 1:02d} / {PAGE_CODES[index]}")
+        self.mode_title.setText(title)
+        self.mode_hint.setText(PAGE_HINTS[index])

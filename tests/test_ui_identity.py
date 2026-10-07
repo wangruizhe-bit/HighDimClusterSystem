@@ -24,7 +24,8 @@ def test_data_studio_shell_is_horizontal_and_has_no_sidebar():
 
     brands = window.studio_header.findChildren(QLabel, "studioBrand")
     assert len(brands) == 1
-    assert brands[0].text() == "HIGH-DIMENSIONAL DATA STUDIO"
+    assert brands[0].text() == "高维数据降维与聚类分析系统"
+    assert "HIGH-DIMENSIONAL DATA STUDIO" not in brands[0].text()
     window.close()
 
 

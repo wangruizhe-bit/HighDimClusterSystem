@@ -204,7 +204,7 @@ class DataLensRail(QFrame):
         super().__init__(parent)
         self.setObjectName("dataLensRail")
         self.setMinimumWidth(245)
-        self.setMaximumWidth(275)
+        self.setMaximumWidth(285)
         self.setSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
         )
@@ -282,7 +282,7 @@ class DataLensRail(QFrame):
 
     def sizeHint(self):
         hint = super().sizeHint()
-        return QSize(260, hint.height())
+        return QSize(270, hint.height())
 
     def _metric(self, title, value):
         frame = QFrame()

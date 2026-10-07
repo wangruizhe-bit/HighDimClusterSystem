@@ -476,70 +476,97 @@ class MainWindow(QMainWindow):
         def work():
             matrix = statistics.correlation(
                 self.session.data.get_data(), self.selected_columns(self.feature_vars))
-            axes = self.statistics_canvas.new_axes()
-            pic = axes.imshow(matrix.to_numpy(), cmap="Blues", vmin=-1, vmax=1)
-            axes.set_xticks(range(len(matrix.columns)),
-                           [str(x) for x in matrix.columns], rotation=45, ha="right")
-            axes.set_yticks(range(len(matrix.index)), [str(x) for x in matrix.index])
-            axes.set_title("Pearson correlation")
-            # 重新绘图前移除此前的颜色条，防止重复堆积。
-            for other in list(self.statistics_canvas.figure.axes):
-                if other is not axes:
-                    other.remove()
-            self.statistics_canvas.figure.colorbar(pic, ax=axes, fraction=.045, pad=.035)
-            self.statistics_canvas.draw_idle()
-            self.feature_figure_ready = True
-            self.session.results_changed.emit()
+
+            def build(axes):
+                pic = axes.imshow(matrix.to_numpy(), cmap="Blues", vmin=-1, vmax=1)
+                axes.set_xticks(
+                    range(len(matrix.columns)),
+                    [str(x) for x in matrix.columns],
+                    rotation=45, ha="right",
+                )
+                axes.set_yticks(range(len(matrix.index)), [str(x) for x in matrix.index])
+                axes.set_title("Pearson 相关热力图")
+                self.statistics_canvas.figure.colorbar(
+                    pic, ax=axes, fraction=.045, pad=.035
+                )
+
+            if self.statistics_canvas.safe_update(
+                "Pearson 相关热力图", build, force_draw=True
+            ):
+                self.feature_figure_ready = True
+                self.session.results_changed.emit()
         self.guarded(work)
 
     def plot_feature(self, kind):
-        """基于当前数据和已选数值列进行真实分布与散点可视化。"""
+        """基于当前数据和已选数值列进行分布与散点可视化。"""
         import numpy as np
+
         def work():
             frame = statistics.numeric_data(
                 self.session.data.get_data(), self.selected_columns(self.feature_vars))
             canvas = self.statistics_canvas
-            ax = canvas.new_axes()
-            if kind == "hist":
-                col = frame.columns[0]
-                clean = frame[col].replace([np.inf, -np.inf], np.nan).dropna()
-                if clean.empty:
-                    raise ValueError("该变量没有可用的有限数值。")
-                ax.hist(clean, bins="auto", color="#3b82b8", edgecolor="white", alpha=.8)
-                ax.set_title(f"Distribution: {col} (n={len(clean)})")
-                ax.set_xlabel(str(col))
-                ax.set_ylabel("Frequency")
-            elif kind == "box":
-                # 对多变量图形的显示数量设上限，不影响统计结果本身。
-                chart = frame.iloc[:, :12].replace([np.inf, -np.inf], np.nan)
-                series = [chart[c].dropna().to_numpy() for c in chart.columns]
-                valid = [(str(c), v) for c, v in zip(chart.columns, series) if len(v)]
-                if not valid:
-                    raise ValueError("所选变量没有可用于箱线图的有限数值。")
-                ax.boxplot([v for _, v in valid], tick_labels=[c for c, _ in valid],
-                           patch_artist=False)
-                ax.tick_params(axis="x", rotation=35)
-                ax.set_title("Box plot (up to 12 variables)")
-                ax.set_ylabel("Value")
-            elif kind == "scatter":
-                if len(frame.columns) < 2:
-                    raise ValueError("双变量散点图至少需要两个数值变量。")
-                left, right = frame.columns[:2]
-                finite = frame.loc[:, [left, right]].replace(
-                    [np.inf, -np.inf], np.nan).dropna()
-                if finite.empty:
-                    raise ValueError("两变量没有共同的有效样本。")
-                ax.scatter(finite[left], finite[right], alpha=.7, s=25,
-                           edgecolors="white", linewidths=.4)
-                ax.set_xlabel(str(left))
-                ax.set_ylabel(str(right))
-                ax.set_title(f"Scatter: {left} vs {right} (n={len(finite)})")
-            else:
-                raise ValueError("未知图表类型。")
-            ax.grid(alpha=.15)
-            canvas.draw_idle()
-            self.feature_figure_ready = True
-            self.session.results_changed.emit()
+
+            def build(ax):
+                if kind == "hist":
+                    col = frame.columns[0]
+                    clean = frame[col].replace([np.inf, -np.inf], np.nan).dropna()
+                    if clean.empty:
+                        raise ValueError("该变量没有可用的有限数值。")
+                    ax.hist(
+                        clean, bins="auto", color="#3b82b8",
+                        edgecolor="white", alpha=.8
+                    )
+                    ax.set_title(f"{col} 分布（n={len(clean)}）")
+                    ax.set_xlabel(str(col))
+                    ax.set_ylabel("频数")
+                elif kind == "box":
+                    chart = frame.iloc[:, :12].replace([np.inf, -np.inf], np.nan)
+                    series = [chart[c].dropna().to_numpy() for c in chart.columns]
+                    valid = [
+                        (str(c), v)
+                        for c, v in zip(chart.columns, series)
+                        if len(v)
+                    ]
+                    if not valid:
+                        raise ValueError("所选变量没有可用于箱线图的有限数值。")
+                    ax.boxplot(
+                        [v for _, v in valid],
+                        tick_labels=[c for c, _ in valid],
+                        patch_artist=False,
+                    )
+                    ax.tick_params(axis="x", rotation=35)
+                    ax.set_title("多变量箱线图（最多 12 个变量）")
+                    ax.set_ylabel("数值")
+                elif kind == "scatter":
+                    if len(frame.columns) < 2:
+                        raise ValueError("双变量散点图至少需要两个数值变量。")
+                    left, right = frame.columns[:2]
+                    finite = frame.loc[:, [left, right]].replace(
+                        [np.inf, -np.inf], np.nan
+                    ).dropna()
+                    if finite.empty:
+                        raise ValueError("两变量没有共同的有效样本。")
+                    ax.scatter(
+                        finite[left], finite[right], alpha=.7, s=25,
+                        edgecolors="white", linewidths=.4,
+                    )
+                    ax.set_xlabel(str(left))
+                    ax.set_ylabel(str(right))
+                    ax.set_title(
+                        f"{left} 与 {right} 散点图（n={len(finite)}）"
+                    )
+                else:
+                    raise ValueError("未知图表类型。")
+                ax.grid(alpha=.15)
+
+            title = {
+                "hist": "变量直方图",
+                "box": "多变量箱线图",
+                "scatter": "双变量散点图",
+            }.get(kind, "特征统计图")
+            if canvas.safe_update(title, build, force_draw=True):
+                self.feature_figure_ready = True
+                self.session.results_changed.emit()
         self.guarded(work)
 
     def make_pca_page(self, layout):

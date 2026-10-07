@@ -55,7 +55,7 @@ class ReductionPage(QWidget):
         select_panel.addWidget(QLabel("参与分析的数值变量（不选择则使用所有数值变量）"))
         self.variables = QListWidget()
         self.variables.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.variables.setMaximumHeight(180)
+        self.variables.setMaximumHeight(195)
         select_panel.addWidget(self.variables)
         form_layout.addLayout(select_panel, 3)
 
@@ -88,7 +88,7 @@ class ReductionPage(QWidget):
         self.rotation.addItem("正交旋转（quartimax）", "quartimax")
         self.rotation.addItem("不旋转", "none")
         factor_controls.addRow("因子旋转", self.rotation)
-        factor_controls.addRow(QLabel("因子数量等于目标维度；如变量数量不足，会阻止计算。"))
+        factor_controls.addRow(QLabel("因子数量由目标维度确定。"))
         self.algorithm_options.addWidget(self.factor_form)
 
         self.mds_form = QWidget()
@@ -172,8 +172,7 @@ class ReductionPage(QWidget):
         group = QGroupBox("分析记录与方法对比")
         record_layout = QVBoxLayout(group)
         record_layout.addWidget(QLabel(
-            "同一数据版本、相同变量及标准化方式、相同输出维度下，可用局部邻域保持度作辅助对比；"
-            "不同方法的载荷、距离残差、KL 散度不可直接互相排名。"))
+            "仅比较同一数据版本、变量、标准化方式和输出维度的结果。"))
         self.history_view = QTableView()
         self.history_model = FrameTableModel(self.history_view)
         self.history_view.setModel(self.history_model)

@@ -19,6 +19,108 @@ QWidget#studioPage {
 }
 QScrollArea#studioScroll { border: none; }
 
+QFrame#dataLensRail {
+    background: #f0edf6;
+    border-left: 1px solid #dfd8ea;
+}
+QLabel#lensEyebrow {
+    color: #8b75c2;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+QLabel#lensTitle {
+    color: #2c2642;
+    font-size: 19px;
+    font-weight: 900;
+}
+QLabel#lensHint {
+    color: #8c8598;
+    font-size: 9px;
+}
+QFrame#lensDatasetCard {
+    background: #211c34;
+    border: 1px solid #393051;
+    border-radius: 11px;
+}
+QLabel#lensCardEyebrow {
+    color: #a99cdc;
+    font-size: 8px;
+    font-weight: 850;
+}
+QLabel#lensDatasetName {
+    color: #f6f2ff;
+    font-size: 13px;
+    font-weight: 850;
+}
+QLabel#lensDatasetShape {
+    color: #c0b5dc;
+    font-size: 10px;
+}
+QLabel#lensSection {
+    color: #776c90;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    margin-top: 6px;
+}
+QFrame#lensMetric {
+    background: #f9f8fc;
+    border: 1px solid #e4dfec;
+    border-radius: 8px;
+}
+QLabel#lensMetricCaption {
+    color: #756f80;
+    font-size: 10px;
+}
+QLabel#lensMetricValue {
+    color: #493b7a;
+    font-size: 13px;
+    font-weight: 900;
+}
+QFrame#lensResultCard {
+    background: #fff8ed;
+    border: 1px solid #f0d8b4;
+    border-radius: 9px;
+}
+QLabel#lensResultValue {
+    color: #b66b1c;
+    font-size: 26px;
+    font-weight: 900;
+}
+QLabel#lensResultCaption {
+    color: #9b7449;
+    font-size: 9px;
+}
+QLabel#lensModeCode {
+    color: #7d63dc;
+    font-size: 9px;
+    font-weight: 900;
+}
+QLabel#lensModeTitle {
+    color: #322b48;
+    font-size: 13px;
+    font-weight: 850;
+}
+QLabel#lensModeHint {
+    color: #888094;
+    font-size: 9px;
+}
+QFrame#lensOffline {
+    background: #e9e4f6;
+    border: 1px solid #d8cfed;
+    border-radius: 9px;
+}
+QLabel#lensOfflineTitle {
+    color: #5946a7;
+    font-size: 9px;
+    font-weight: 900;
+}
+QLabel#lensOfflineHint {
+    color: #786d91;
+    font-size: 9px;
+}
+
 /* ------------------------- Top Data Studio shell ------------------------- */
 QFrame#studioHeader {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,

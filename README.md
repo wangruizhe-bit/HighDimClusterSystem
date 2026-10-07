@@ -2,7 +2,7 @@
 
 High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
-> 当前进度：**五阶段全部完成。Windows/Linux 各 83 项自动化测试通过，Windows 独立 EXE 打包、启动自检与真实界面截图全部成功。** 项目可在本地独立运行，不依赖在线服务。
+> 当前进度：**五阶段全部完成。Windows/Linux 各 87 项自动化测试通过，Windows 独立 EXE 打包与下载后启动自检均成功。** 项目可在本地独立运行，不依赖在线服务。
 
 ## Windows 发行包（DLL 缺失问题已修复）
 
@@ -15,7 +15,6 @@ High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
 - **HighDimClusterSystem-V1.0-Windows-Fixed**：完整 Windows 程序目录，解压后保留
   `_internal` 和 `HighDimClusterSystem.exe` 在同一文件夹，双击 EXE 运行。
-- **HighDimClusterSystem-V1.0-Screenshots**：由真实 Qt 界面生成的截图。
 
 **修复及验证说明**：旧版使用 GitHub Artifact 默认设置，导致隐藏目录
 `_internal/sklearn/.libs/` 未被上传，进而缺少 `vcomp140.dll`。
@@ -107,7 +106,7 @@ python main.py
 - **HTML**：生成本地离线查看的中文分析报告，展示真实表格摘要和算法说明；大量数据只做预览，完整数据请导出为表格文件。
 - **PNG / SVG**：保存当前真实图表和模型可视化，不生成未执行的算法结果。高分辨率 PNG 适合说明书插图。
 - **安全可靠性**：保护敏感的电子表格文本，避免将其写成公式；先在临时目录完整保存，再替换正式导出文件；数据变更时清理过期分析快照，点击“清空结果”不会删除当前数据。
-- **Windows 交付**：另有 GitHub Actions 工作流自动使用 PyInstaller 打包桌面程序、运行可执行文件启动自检，生成真实 Qt 界面截图附件。通过的运行任务下可直接下载对应 ZIP，不需要安装 Codex。
+- **Windows 交付**：GitHub Actions 自动使用 PyInstaller 打包桌面程序，并对下载后的完整附件再次执行启动自检。真实界面截图工具保留在 `tools/capture_screenshots.py`，建议在最终 Windows 桌面环境中生成说明书截图。
 - **用户说明**：见 [中文用户操作说明](docs/用户操作说明.md)，涵盖 8 个功能页面、软件启动、分析建议与常见问题。
 - **自动化测试**：增加实际文件读回、Excel 公式安全、图片格式、GUI 导出和保留原数据、失败导出保护等用例。Windows 与 Linux 各 **83 项自动化测试已经全部通过**。
 
@@ -146,7 +145,7 @@ tests/                    单元测试、文件导出与无头 Qt 联调测试
 tools/capture_screenshots.py 实际界面截图生成工具
 docs/用户操作说明.md       完整中文操作说明
 .github/workflows/tests.yml Windows/Linux 自动化测试
-.github/workflows/build-windows.yml Windows EXE 打包与截图
+.github/workflows/build-windows.yml Windows EXE 打包与下载后完整性验证
 requirements.txt          Python 依赖
 ```
 
@@ -157,7 +156,7 @@ python -m compileall -q main.py app core tests
 python -m pytest -q
 ```
 
-测试包括数据读取和恢复、缺失值处理、标准化、描述统计、PCA 数值对照、因子载荷、MDS 距离残差、t-SNE 随机种子复现、8 页切换、后台线程运行、分析记录与方法对比。GitHub Actions 在 Linux 和 Windows 上各完成 **83 项检查**；这属于自动化及无头 GUI 冒烟测试，并非 Windows 桌面人工交互和视觉验收的替代品。
+测试包括数据读取和恢复、缺失值处理、标准化、描述统计、PCA 数值对照、因子载荷、MDS 距离残差、t-SNE 随机种子复现、8 页切换、后台线程运行、分析记录与方法对比。GitHub Actions 在 Linux 和 Windows 上各完成 **87 项检查**；这属于自动化及无头 GUI 冒烟测试，并非 Windows 桌面人工交互和视觉验收的替代品。
 
 ## 后续五阶段路线
 

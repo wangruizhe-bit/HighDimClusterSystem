@@ -44,9 +44,9 @@ jobs:
       - name: Verify Python UI initialization
         run: python main.py --self-check
       - name: Stress PCA QtAgg tabs in source build
-        run: python main.py --pca-gui-self-check
+        run: python -m tools.run_with_logs python main.py --pca-gui-self-check
       - name: Scan all PlotCanvas paths in source build
-        run: python main.py --graphics-gui-self-check
+        run: python -m tools.run_with_logs python main.py --graphics-gui-self-check
       - name: Capture 1920x1080 interface at Windows 100%
         run: python -m tools.capture_screenshots --profile 1080_100
       - name: Capture 1920x1080 interface at Windows 125%

@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.diagnostics import log_plot_exception
-from app.plot_canvas import PlotCanvas
+from app.plot_canvas import PlotCanvas, StaticPlotCanvas
 from app.table_model import FrameTableModel
 from core.pca import fit_pca
 
@@ -103,7 +103,7 @@ class PCAPage(QWidget):
 
         self.variance_canvas = PlotCanvas()
         self.scatter2d_canvas = PlotCanvas()
-        self.scatter3d_canvas = PlotCanvas(three_d=True)
+        self.scatter3d_canvas = StaticPlotCanvas(three_d=True)
         for title, canvas in [
             ("方差贡献率与碎石图", self.variance_canvas),
             ("二维主成分得分图", self.scatter2d_canvas),

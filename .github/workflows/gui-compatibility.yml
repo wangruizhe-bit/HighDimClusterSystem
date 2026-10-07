@@ -74,13 +74,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install --upgrade --force-reinstall "PySide6==6.11.2" "matplotlib==3.11.2" "numpy==2.5.3"
-      - name: Restore PCA and PlotCanvas implementation from reported-crash generation
+      - name: Create consistent reported-crash source tree
         shell: pwsh
         run: |
-          git show f39f7a95e9207386cd116130f6dc65d6f4014e46:app/plot_canvas.py | Set-Content -Encoding utf8 app/plot_canvas.py
-          git show f39f7a95e9207386cd116130f6dc65d6f4014e46:app/pca_page.py | Set-Content -Encoding utf8 app/pca_page.py
+          git worktree add legacy-src f39f7a95e9207386cd116130f6dc65d6f4014e46
+          Copy-Item tools\legacy_pca_repro.py legacy-src\tools\legacy_pca_repro.py -Force
+          Copy-Item tools\run_with_logs.py legacy-src\tools\run_with_logs.py -Force
       - name: Report versions
         run: |
           python -c "import PySide6, matplotlib, numpy; print('PySide6', PySide6.__version__); print('Matplotlib', matplotlib.__version__); print('NumPy', numpy.__version__); print('Backend', matplotlib.get_backend())"
       - name: Run legacy PCA reproduction loop and print diagnostics
-        run: python -m tools.run_with_logs python -m tools.legacy_pca_repro
+        shell: pwsh
+        run: |
+          Push-Location legacy-src
+          python -m tools.run_with_logs python -m tools.legacy_pca_repro
+          $code = $LASTEXITCODE
+          Pop-Location
+          exit $code

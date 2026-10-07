@@ -144,6 +144,12 @@ jobs:
         shell: pwsh
         run: |
           python -c "import subprocess; subprocess.check_call([r'artifact-check\HighDimClusterSystem.exe', '--pca-gui-self-check'], timeout=420)"
+      - name: Re-run all graphics scan on downloaded release artifact
+        env:
+          QT_QPA_PLATFORM: windows
+        shell: pwsh
+        run: |
+          python -c "import subprocess; subprocess.check_call([r'artifact-check\HighDimClusterSystem.exe', '--graphics-gui-self-check'], timeout=900)"
       - name: Upload UI visual-check screenshots
         uses: actions/upload-artifact@v4
         with:

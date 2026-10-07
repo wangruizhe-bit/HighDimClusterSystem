@@ -1,4 +1,4 @@
-"""阶段三：可运行的因子分析、MDS、t-SNE 页面和可比性明确的方法对照。"""
+"""因子分析、MDS、t-SNE 页面及同条件方法对比。"""
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView, QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout,

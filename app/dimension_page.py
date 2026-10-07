@@ -333,27 +333,42 @@ class ReductionPage(QWidget):
 
     def _draw_embedding(self, result):
         vals = result.coordinates
-        canvas = self.canvas2d
-        ax = canvas.new_axes()
-        ax.scatter(vals["维度1"], vals["维度2"], s=29, alpha=.72,
-                   edgecolors="white", linewidths=.45)
-        ax.set_xlabel("维度 1")
-        ax.set_ylabel("维度 2")
-        ax.set_title(f"{result.method_label} · 二维结果")
-        ax.grid(alpha=.15)
-        canvas.draw_idle()
-        if result.dimensions == 3:
-            three = self.canvas3d
-            ax = three.new_axes(three_d=True)
-            ax.scatter(vals["维度1"], vals["维度2"], vals["维度3"],
-                       s=29, alpha=.74, depthshade=True)
+
+        def build_2d(ax):
+            ax.scatter(
+                vals["维度1"], vals["维度2"], s=29, alpha=.72,
+                edgecolors="white", linewidths=.45,
+            )
             ax.set_xlabel("维度 1")
             ax.set_ylabel("维度 2")
-            ax.set_zlabel("Dimension 3")
-            ax.set_title(f"{result.method_label} · 三维结果")
-            three.draw_idle()
+            ax.set_title(f"{result.method_label} · 二维结果")
+            ax.grid(alpha=.15)
+
+        self.canvas2d.safe_update(
+            f"{result.method_label}二维图", build_2d,
+            force_draw=self.canvas2d.isVisible(),
+        )
+
+        if result.dimensions == 3:
+            def build_3d(ax):
+                ax.scatter(
+                    vals["维度1"], vals["维度2"], vals["维度3"],
+                    s=29, alpha=.74, depthshade=True,
+                )
+                ax.set_xlabel("维度 1")
+                ax.set_ylabel("维度 2")
+                ax.set_zlabel("维度 3")
+                ax.set_title(f"{result.method_label} · 三维结果")
+
+            self.canvas3d.safe_update(
+                f"{result.method_label}三维图", build_3d, three_d=True,
+                force_draw=self.canvas3d.isVisible(),
+            )
         else:
-            self.canvas3d.clear_message("本次保留二维坐标；选择三维目标空间可绘制三维图")
+            self.canvas3d.clear_message(
+                "本次保留二维坐标；选择三维目标空间可绘制三维图",
+                request_draw=self.canvas3d.isVisible(),
+            )
 
     def update_history(self):
         records = self.session.reduction_results
@@ -404,19 +419,23 @@ class ReductionPage(QWidget):
                 "只有使用同一数据版本、相同变量、相同标准化方式和相同目标维度的结果"
                 "才能作为公平的辅助比较。")
             return
-        figure = self.comparison_canvas.figure
-        figure.clear()
-        for i, result in enumerate((left, right)):
-            ax = figure.add_subplot(1, 2, i+1)
-            coords = result.coordinates
-            ax.scatter(coords["维度1"], coords["维度2"], s=15, alpha=.7)
-            ax.set_aspect("equal", adjustable="datalim")
-            ax.set_title(f"{result.method_label} · 记录 {(ia, ib)[i]+1}", fontsize=13)
-            ax.set_xlabel("Dimension 1")
-            ax.set_ylabel("Dimension 2")
-            ax.grid(alpha=.15)
-        self.comparison_canvas.draw_idle()
-        self.comparison_ready = True
+        def build_comparison(figure):
+            for i, result in enumerate((left, right)):
+                ax = figure.add_subplot(1, 2, i + 1)
+                coords = result.coordinates
+                ax.scatter(coords["维度1"], coords["维度2"], s=15, alpha=.7)
+                ax.set_aspect("equal", adjustable="datalim")
+                ax.set_title(
+                    f"{result.method_label} · 记录 {(ia, ib)[i] + 1}",
+                    fontsize=13,
+                )
+                ax.set_xlabel("维度 1")
+                ax.set_ylabel("维度 2")
+                ax.grid(alpha=.15)
+
+        self.comparison_ready = self.comparison_canvas.safe_figure_update(
+            "降维方法并排对比", build_comparison, force_draw=True
+        )
         self.session.results_changed.emit()
         ta, tb = left.metrics.get("trustworthiness"), right.metrics.get("trustworthiness")
         format_score = lambda x: "未计算" if x is None else f"{x:.4f}"

@@ -1,11 +1,8 @@
-"""第三软著专用 Data Studio 组件。
+"""Data Studio 主界面组件。
 
-视觉与结构目标：
-- 不采用 Pareto 系统的左侧白色导航；
-- 不采用可靠性系统的顶部模块下拉控制台；
-- 使用“深色 Studio Header + 横向 Mode Strip + 全宽分析画布”。
+包含品牌顶栏、横向模式导航、页面标题、首页统计组件和右侧数据概览。
 """
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
     QSizePolicy, QVBoxLayout, QWidget,
@@ -94,7 +91,7 @@ class StudioHeader(QFrame):
 
 
 class ModeStrip(QFrame):
-    """横向模式带，是第三个软著的主要导航，而非侧栏或下拉导航。"""
+    """横向模式导航组件。"""
 
     def __init__(self, page_names, change_callback, parent=None):
         super().__init__(parent)
@@ -167,6 +164,7 @@ class PipelineStep(QFrame):
     def __init__(self, number, title, hint, jump, parent=None):
         super().__init__(parent)
         self.setObjectName("pipelineStep")
+        self.setMinimumHeight(72)
         row = QHBoxLayout(self)
         row.setContentsMargins(16, 13, 16, 13)
         row.setSpacing(14)
@@ -205,7 +203,11 @@ class DataLensRail(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("dataLensRail")
-        self.setFixedWidth(310)
+        self.setMinimumWidth(245)
+        self.setMaximumWidth(275)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+        )
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -222,8 +224,8 @@ class DataLensRail(QFrame):
         content.setObjectName("lensContent")
         self.scroll.setWidget(content)
         box = QVBoxLayout(content)
-        box.setContentsMargins(20, 18, 20, 18)
-        box.setSpacing(11)
+        box.setContentsMargins(16, 14, 16, 14)
+        box.setSpacing(8)
 
         self.title_label = studio_label("数据概览", "lensTitle", wrap=False)
         self.title_label.setMinimumHeight(30)
@@ -231,10 +233,10 @@ class DataLensRail(QFrame):
 
         self.dataset_card = QFrame()
         self.dataset_card.setObjectName("lensDatasetCard")
-        self.dataset_card.setMinimumHeight(96)
+        self.dataset_card.setMinimumHeight(88)
         card = QVBoxLayout(self.dataset_card)
-        card.setContentsMargins(15, 13, 15, 13)
-        card.setSpacing(5)
+        card.setContentsMargins(13, 11, 13, 11)
+        card.setSpacing(4)
         self.dataset_caption = studio_label("当前数据集", "lensCardEyebrow", wrap=False)
         card.addWidget(self.dataset_caption)
         self.dataset_name = studio_label("尚未导入", "lensDatasetName", wrap=False)
@@ -260,9 +262,9 @@ class DataLensRail(QFrame):
         self.result_caption = studio_label("尚无分析结果", "lensResultCaption", wrap=False)
         self.result_box = QFrame()
         self.result_box.setObjectName("lensResultCard")
-        self.result_box.setMinimumHeight(82)
+        self.result_box.setMinimumHeight(72)
         result_layout = QVBoxLayout(self.result_box)
-        result_layout.setContentsMargins(15, 11, 15, 11)
+        result_layout.setContentsMargins(13, 10, 13, 10)
         result_layout.setSpacing(2)
         result_layout.addWidget(self.result_value)
         result_layout.addWidget(self.result_caption)
@@ -276,25 +278,18 @@ class DataLensRail(QFrame):
         box.addWidget(self.mode_code)
         box.addWidget(self.mode_title)
 
-        box.addStretch(1)
+        box.addSpacing(12)
 
-        offline = QFrame()
-        offline.setObjectName("lensOffline")
-        offline.setMinimumHeight(48)
-        offline_layout = QVBoxLayout(offline)
-        offline_layout.setContentsMargins(14, 10, 14, 10)
-        offline_layout.setSpacing(0)
-        offline_layout.addWidget(
-            studio_label("本地计算 · 数据不上传", "lensOfflineTitle", wrap=False)
-        )
-        box.addWidget(offline)
+    def sizeHint(self):
+        hint = super().sizeHint()
+        return QSize(260, hint.height())
 
     def _metric(self, title, value):
         frame = QFrame()
         frame.setObjectName("lensMetric")
-        frame.setMinimumHeight(42)
+        frame.setMinimumHeight(40)
         row = QHBoxLayout(frame)
-        row.setContentsMargins(12, 8, 12, 8)
+        row.setContentsMargins(11, 7, 11, 7)
         row.setSpacing(8)
         caption = studio_label(title, "lensMetricCaption", wrap=False)
         number = studio_label(value, "lensMetricValue", wrap=False)

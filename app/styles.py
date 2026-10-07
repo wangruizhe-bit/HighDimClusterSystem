@@ -48,7 +48,7 @@ QLabel#studioBrandSub {
     font-size: 11px;
 }
 QFrame#datasetCapsule {
-    background: rgba(255,255,255,0.06);
+    background: rgba(255,255,255,16);
     border: 1px solid #50496d;
     border-radius: 10px;
 }
@@ -165,8 +165,8 @@ QLabel#heroSubtitle {
     font-size: 12px;
 }
 QFrame#homeContext {
-    background: rgba(19,17,33,0.34);
-    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(19,17,33,90);
+    border: 1px solid rgba(255,255,255,45);
     border-radius: 12px;
     min-width: 255px;
 }

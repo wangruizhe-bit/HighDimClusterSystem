@@ -431,8 +431,11 @@ class MainWindow(QMainWindow):
             ("多变量箱线图", lambda: self.plot_feature("box")),
             ("双变量散点图", lambda: self.plot_feature("scatter")),
         ]
+        self.feature_action_buttons = {}
         for i, (caption, fn) in enumerate(feature_actions):
-            actions.addWidget(button(caption, fn, i == 0), i // 4, i % 4)
+            action_button = button(caption, fn, i == 0)
+            self.feature_action_buttons[caption] = action_button
+            actions.addWidget(action_button, i // 4, i % 4)
         pane.addLayout(actions)
         layout.addWidget(panel)
         panel, pane = card("真实统计计算结果")

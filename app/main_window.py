@@ -18,6 +18,9 @@ from app.evaluation_page import EvaluationPage
 from app.results_page import ResultsPage
 from app.session import Session
 from app.table_model import FrameTableModel
+from app.studio_components import (
+    MetricGrid, MetricTile, ModeStrip, PageBanner, PipelineStep, StudioHeader,
+)
 
 PAGES = [
     "分析首页", "数据管理与预处理", "特征统计分析", "主成分分析（PCA）",
@@ -66,71 +69,71 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("高维数据降维与聚类分析系统 V1.0")
-        self.resize(1440, 900)
-        self.setMinimumSize(1020, 680)
+        self.resize(1480, 920)
+        self.setMinimumSize(1080, 720)
         self.session = Session(self)
         self.views = []
         self.feature_figure_ready = False
         self.refreshers = []
         self.setStatusBar(self.statusBar())
-        root = QWidget()
-        root.setObjectName("workspace")
-        self.setCentralWidget(root)
-        horizontal = QHBoxLayout(root)
-        horizontal.setContentsMargins(0, 0, 0, 0)
-        horizontal.setSpacing(0)
 
-        sidebar = QFrame()
-        sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(225)
-        nav = QVBoxLayout(sidebar)
-        nav.setContentsMargins(16, 24, 16, 18)
-        nav.setSpacing(7)
-        nav.addWidget(label("◈  数理数据工作台"))
-        nav.addWidget(label("HighDimCluster · V1.0"))
-        nav.addSpacing(24)
-        self.nav_buttons = []
+        root = QWidget()
+        root.setObjectName("studioWorkspace")
+        self.setCentralWidget(root)
+        shell = QVBoxLayout(root)
+        shell.setContentsMargins(0, 0, 0, 0)
+        shell.setSpacing(0)
+
+        # 第三个软著采用独立的 Data Studio 结构：
+        # 深色品牌顶栏 + 横向模式导航 + 全宽分析画布。
+        self.studio_header = StudioHeader(
+            lambda: self.goto(1),
+            lambda: self.goto(7),
+            self,
+        )
+        shell.addWidget(self.studio_header)
+
+        self.mode_strip = ModeStrip(PAGES, self.goto, self)
+        self.nav_buttons = self.mode_strip.buttons  # 保留公共接口，方便自动化测试和快捷导航。
+        shell.addWidget(self.mode_strip)
+
         self.stack = QStackedWidget()
-        for index, name in enumerate(PAGES):
-            b = QPushButton(name)
-            b.setObjectName("nav")
-            b.setCheckable(True)
-            b.clicked.connect(partial(self.goto, index))
-            nav.addWidget(b)
-            self.nav_buttons.append(b)
-        nav.addStretch(1)
-        nav.addWidget(label("本地分析 · 无需联网"))
-        horizontal.addWidget(sidebar)
-        horizontal.addWidget(self.stack, 1)
+        self.stack.setObjectName("studioCanvas")
+        shell.addWidget(self.stack, 1)
 
         makers = [
             self.make_home, self.make_data_page, self.make_feature_page,
             self.make_pca_page, self.make_dimension_page, self.make_cluster_page,
             self.make_evaluation_page, self.make_results_page
         ]
-        for name, maker in zip(PAGES, makers):
+        for index, (name, maker) in enumerate(zip(PAGES, makers)):
             scroll = QScrollArea()
+            scroll.setObjectName("studioScroll")
             scroll.setWidgetResizable(True)
             scroll.setFrameShape(QFrame.Shape.NoFrame)
             page = QWidget()
-            page.setObjectName("workspace")
+            page.setObjectName("studioPage")
             lay = QVBoxLayout(page)
-            lay.setContentsMargins(28, 24, 28, 24)
+            lay.setContentsMargins(30, 24, 30, 30)
             lay.setSpacing(16)
-            lay.addWidget(label(name, "heading"))
+            lay.addWidget(PageBanner(index, name))
             maker(lay)
             lay.addStretch(1)
             scroll.setWidget(page)
             self.stack.addWidget(scroll)
+
         self.session.data_changed.connect(self.refresh_all)
         self.goto(0)
         self.refresh_all()
 
     def goto(self, number):
+        if not 0 <= number < self.stack.count():
+            return
         self.stack.setCurrentIndex(number)
-        for i, b in enumerate(self.nav_buttons):
-            b.setChecked(i == number)
-        self.statusBar().showMessage("当前页面：" + PAGES[number], 4000)
+        self.mode_strip.select(number)
+        self.statusBar().showMessage(
+            f"DATA STUDIO  ·  {number + 1:02d}  ·  {PAGES[number]}", 4000
+        )
 
     def inform(self, message):
         QMessageBox.information(self, "提示", message)
@@ -147,34 +150,132 @@ class MainWindow(QMainWindow):
             self.fail("操作发生意外错误，请检查数据文件与输入参数。")
 
     def make_home(self, layout):
-        panel, pane = card()
-        pane.addWidget(label("高维数据降维与聚类分析系统", "heading"))
-        pane.addWidget(label("面向高维数值数据的预处理、统计分析、降维与聚类工作台。", "subtitle"))
-        shortcuts = QHBoxLayout()
-        shortcuts.addWidget(button("导入数据", lambda: self.goto(1), True))
-        shortcuts.addWidget(button("特征分析", lambda: self.goto(2)))
-        shortcuts.addWidget(button("主成分分析", lambda: self.goto(3)))
-        shortcuts.addWidget(button("聚类分析", lambda: self.goto(5)))
-        shortcuts.addStretch()
-        pane.addLayout(shortcuts)
-        layout.addWidget(panel)
-        panel, pane = card("当前数据集")
-        self.home_summary = label("尚未导入数据")
-        pane.addWidget(self.home_summary)
-        layout.addWidget(panel)
-        panel, pane = card("工作流程")
-        pane.addWidget(label(
-            "数据导入 → 数据清洗与标准化 → 特征统计 → 主成分分析 → 多方法降维 → 聚类分析 → "
-            "模型评价 → 结果导出\n\n当前前四阶段：预处理、统计、PCA、降维、聚类与评价均可真实运行；"
-            "第五阶段将完善统一结果导出与报告。"))
-        layout.addWidget(panel)
+        hero = QFrame()
+        hero.setObjectName("homeHero")
+        hero_layout = QHBoxLayout(hero)
+        hero_layout.setContentsMargins(28, 24, 28, 24)
+        hero_layout.setSpacing(24)
+
+        copy = QVBoxLayout()
+        copy.setSpacing(9)
+        copy.addWidget(label("DATA DISCOVERY / DIMENSION REDUCTION / CLUSTERING", "heroEyebrow"))
+        copy.addWidget(label("从高维数据中发现结构", "heroTitle"))
+        copy.addWidget(label(
+            "以真实数据为起点，完成清洗、统计探索、PCA、多方法降维、聚类与模型评价。"
+            "第三个软件采用独立的数据工作室界面，不沿用前两个软著的导航与首页结构。",
+            "heroSubtitle"
+        ))
+        hero_actions = QHBoxLayout()
+        hero_actions.setSpacing(10)
+        hero_actions.addWidget(button("＋  导入数据", lambda: self.goto(1), True))
+        hero_actions.addWidget(button("探索变量", lambda: self.goto(2)))
+        hero_actions.addWidget(button("开始聚类", lambda: self.goto(5)))
+        hero_actions.addStretch(1)
+        copy.addLayout(hero_actions)
+        hero_layout.addLayout(copy, 3)
+
+        context = QFrame()
+        context.setObjectName("homeContext")
+        ctx = QVBoxLayout(context)
+        ctx.setContentsMargins(18, 16, 18, 16)
+        ctx.setSpacing(6)
+        ctx.addWidget(label("WORKSPACE STATUS", "contextEyebrow"))
+        self.home_dataset_name = label("尚未导入数据", "contextTitle")
+        ctx.addWidget(self.home_dataset_name)
+        self.home_dataset_hint = label("导入 CSV 或 Excel 后开始分析", "contextHint")
+        ctx.addWidget(self.home_dataset_hint)
+        ctx.addStretch(1)
+        self.home_result_count = label("0 个分析结果", "contextBadge")
+        ctx.addWidget(self.home_result_count)
+        hero_layout.addWidget(context, 1)
+        layout.addWidget(hero)
+
+        self.metric_tiles = {
+            "rows": MetricTile("样本数量", "0", "当前工作数据", "violet"),
+            "numeric": MetricTile("数值变量", "0", "可参与降维与聚类", "amber"),
+            "missing": MetricTile("缺失单元格", "0", "建议在建模前处理", "rose"),
+            "results": MetricTile("分析结果", "0", "当前数据版本结果快照", "mint"),
+        }
+        metrics = MetricGrid()
+        metrics.add_tiles(list(self.metric_tiles.values()))
+        layout.addWidget(metrics)
+
+        body = QHBoxLayout()
+        body.setSpacing(14)
+
+        pipeline = QFrame()
+        pipeline.setObjectName("studioPanel")
+        pipeline_layout = QVBoxLayout(pipeline)
+        pipeline_layout.setContentsMargins(20, 18, 20, 18)
+        pipeline_layout.setSpacing(10)
+        pipeline_layout.addWidget(label("分析路径", "panelTitle"))
+        pipeline_layout.addWidget(label(
+            "不是固定向导，可按研究任务跳转；下列四步覆盖最常见的数据分析流程。",
+            "panelHint"
+        ))
+        steps = [
+            (1, "准备数据", "导入 · 清洗 · 缺失值 · 标准化", 1),
+            (2, "理解结构", "描述统计 · 相关性 · PCA · 嵌入", 2),
+            (3, "识别类别", "K-means · 层次聚类 · DBSCAN", 5),
+            (4, "评价与交付", "质量指标 · K 值 · 结果导出", 6),
+        ]
+        for number, title, hint, target in steps:
+            pipeline_layout.addWidget(PipelineStep(
+                number, title, hint,
+                lambda checked=False, page=target: self.goto(page)
+            ))
+        pipeline_layout.addStretch(1)
+        body.addWidget(pipeline, 3)
+
+        capability = QFrame()
+        capability.setObjectName("studioPanel")
+        cap = QVBoxLayout(capability)
+        cap.setContentsMargins(20, 18, 20, 18)
+        cap.setSpacing(10)
+        cap.addWidget(label("分析能力矩阵", "panelTitle"))
+        cap.addWidget(label("已完成并接入真实计算的模块", "panelHint"))
+        capabilities = [
+            ("PCA", "特征值 / 载荷 / 得分 / 2D-3D"),
+            ("FA · MDS · t-SNE", "解释型降维与非线性嵌入"),
+            ("K-means · HC · DBSCAN", "三类互补聚类方法"),
+            ("Silhouette · CH · DB", "聚类质量与 K 值辅助判断"),
+            ("CSV · Excel · HTML", "表格、报告与图像本地导出"),
+        ]
+        for name, hint in capabilities:
+            line = QFrame()
+            line.setObjectName("capabilityRow")
+            row = QHBoxLayout(line)
+            row.setContentsMargins(12, 9, 12, 9)
+            row.addWidget(label(name, "capabilityName"))
+            row.addStretch(1)
+            row.addWidget(label(hint, "capabilityHint"))
+            cap.addWidget(line)
+        cap.addStretch(1)
+        body.addWidget(capability, 2)
+        layout.addLayout(body)
 
         def update():
-            s = self.session.data.summary()
-            self.home_summary.setText(
-                f"数据集：{s['name']}\n样本：{s['rows']}    特征：{s['columns']}    "
-                f"数值变量：{s['numeric']}    非数值变量：{s['non_numeric']}\n"
-                f"缺失单元格：{s['missing']}    重复样本：{s['duplicates']}")
+            summary = self.session.data.summary()
+            self.studio_header.update_dataset(summary)
+            imported = summary["rows"] > 0
+            self.home_dataset_name.setText(summary["name"] if imported else "尚未导入数据")
+            self.home_dataset_hint.setText(
+                f"{summary['rows']} 行 × {summary['columns']} 列 · "
+                f"{summary['numeric']} 个数值变量"
+                if imported else "导入 CSV 或 Excel 后开始分析"
+            )
+            result_count = (
+                (1 if self.session.feature_result is not None else 0)
+                + (1 if self.session.latest_pca is not None else 0)
+                + len(self.session.reduction_results)
+                + len(self.session.cluster_results)
+                + (1 if self.session.k_search_result is not None else 0)
+            )
+            self.home_result_count.setText(f"{result_count} 个分析结果")
+            self.metric_tiles["rows"].set_value(summary["rows"], "当前工作数据")
+            self.metric_tiles["numeric"].set_value(summary["numeric"], "可参与降维与聚类")
+            self.metric_tiles["missing"].set_value(summary["missing"], "建议在建模前处理")
+            self.metric_tiles["results"].set_value(result_count, "当前数据版本结果快照")
         self.refreshers.append(update)
 
     def make_data_page(self, layout):

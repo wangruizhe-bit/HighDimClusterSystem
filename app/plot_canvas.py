@@ -57,8 +57,8 @@ def _report_draw_error(owner, title, exc):
     return False
 
 
-class PlotCanvas(FigureCanvasQTAgg):
-    """二维 QtAgg FigureCanvas。"""
+class QtPlotCanvas(FigureCanvasQTAgg):
+    """保留的 QtAgg 画布实现，仅用于兼容性诊断，不用于正式界面。"""
 
     def __init__(self, parent=None):
         self.figure = Figure(figsize=(6, 4))
@@ -134,7 +134,7 @@ class StaticPlotCanvas(QWidget):
     QImage/QPixmap 交给 QLabel 显示；Qt 不再直接 paint mplot3d Canvas。
     """
 
-    def __init__(self, parent=None, *, three_d=True):
+    def __init__(self, parent=None, *, three_d=False):
         super().__init__(parent)
         self._three_d = bool(three_d)
         self.figure = Figure(figsize=(6, 4))
@@ -248,3 +248,7 @@ class StaticPlotCanvas(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._update_pixmap()
+
+
+# 正式界面统一使用离屏 Agg 渲染。保留 PlotCanvas 名称，避免页面层代码改动。
+PlotCanvas = StaticPlotCanvas

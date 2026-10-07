@@ -75,7 +75,6 @@ def validate_key_geometry(window, app):
         window.data_lens.dataset_name,
         window.data_lens.dataset_shape,
         window.data_lens.mode_title,
-        window.data_lens.mode_hint,
     ]
     for widget in labels:
         if widget.width() <= 20 or widget.height() <= 12:

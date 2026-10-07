@@ -1,7 +1,8 @@
-"""生成真实 Qt 界面截图，用于 Windows 1080p / 125% 视觉验收。
+"""真实 Qt 界面截图与布局验收。
 
-不合成界面，不修改截图内容。100% 使用 1920×1080 逻辑窗口；
-125% 用等效 1536×864 逻辑工作区，并输出为 1920×1080 图片。
+覆盖 1920×1080 100%、1920×1080 125% 等效逻辑尺寸、
+默认 1600×940 和最小 1180×760。截图只用于界面布局验收，
+算法与图表数值正确性由自动化测试套件验证。
 """
 import argparse
 import os
@@ -19,18 +20,19 @@ from app.main_window import MainWindow
 from app.styles import STYLE
 
 
-def pump(app, condition=None, timeout=30.0):
+PROFILES = {
+    "1080_100": (1920, 1080, 1.0),
+    "1080_125": (1536, 864, 1.25),
+    "default": (1600, 940, 1.0),
+    "minimum": (1180, 760, 1.0),
+}
+
+
+def pump(app, timeout=1.0):
     end = time.monotonic() + timeout
-    settle = time.monotonic() + 0.30
     while time.monotonic() < end:
         app.processEvents()
-        if condition is not None and condition():
-            app.processEvents()
-            return
-        if condition is None and time.monotonic() >= settle:
-            return
-        time.sleep(0.015)
-    raise RuntimeError("界面或示例计算未在时限内完成。")
+        time.sleep(0.01)
 
 
 def render_window(window, target: Path, scale: float):
@@ -50,68 +52,100 @@ def render_window(window, target: Path, scale: float):
         raise RuntimeError(f"界面截图异常，文件过小：{target}")
 
 
-def snapshot(app, window, section, name, destination, scale):
-    window.goto(section)
-    pump(app)
+def snapshot(app, window, name, destination, scale):
+    pump(app, 0.25)
     target = destination / name
     render_window(window, target, scale)
-    print(f"Screenshot page={section}, bytes={target.stat().st_size}", flush=True)
+    print(f"Screenshot {name}: {target.stat().st_size} bytes", flush=True)
 
 
-def validate_key_geometry(window, app):
-    """在截图前检查容易因字号放大产生的截断位置。"""
+def validate_shell(window, app):
     app.processEvents()
+
     for button in window.nav_buttons:
         metrics = button.fontMetrics()
         lines = button.text().splitlines()
         max_width = max(metrics.horizontalAdvance(line) for line in lines)
         required_height = metrics.lineSpacing() * len(lines)
         if max_width > button.width() - 14:
-            raise RuntimeError(f"顶部导航文字横向截断：{button.text()}")
+            raise RuntimeError(f"顶部导航横向截断：{button.text()}")
         if required_height > button.height() - 8:
-            raise RuntimeError(f"顶部导航文字纵向截断：{button.text()}")
+            raise RuntimeError(f"顶部导航纵向截断：{button.text()}")
+
+    brand = window.studio_header.brand_title
+    if brand.wordWrap():
+        raise RuntimeError("软件名称不允许自动换行。")
+    if brand.fontMetrics().horizontalAdvance(brand.text()) > brand.width() - 4:
+        raise RuntimeError("软件名称可用宽度不足。")
+
+    rail = window.data_lens
+    if not 245 <= rail.width() <= 275:
+        raise RuntimeError(f"右侧数据概览宽度异常：{rail.width()}px")
+
     labels = [
         window.studio_header.dataset_text,
-        window.data_lens.dataset_name,
-        window.data_lens.dataset_shape,
-        window.data_lens.mode_title,
+        rail.dataset_name,
+        rail.dataset_shape,
+        rail.mode_title,
     ]
     for widget in labels:
         if widget.width() <= 20 or widget.height() <= 12:
             raise RuntimeError(f"关键文字控件尺寸异常：{widget.objectName()}")
 
-    # 品牌名称禁止换行，并且可用宽度必须容纳完整文字。
-    brand = window.studio_header.brand_title
-    if brand.wordWrap():
-        raise RuntimeError("软件名称不允许自动换行。")
-    if brand.fontMetrics().horizontalAdvance(brand.text()) > brand.width() - 4:
-        raise RuntimeError("软件名称可用宽度不足，存在横向裁切。")
 
-    # 右侧栏关键块必须按顺序排列，不能出现用户截图中的互相覆盖。
-    rail = window.data_lens
-    ordered = [
-        rail.title_label, rail.dataset_card, rail.quality_title,
-        rail.rows[0], rail.numeric[0], rail.missing[0], rail.duplicates[0],
-        rail.records_title, rail.result_box, rail.position_title,
-        rail.mode_code, rail.mode_title,
-    ]
-    previous_bottom = -1
-    for widget in ordered:
-        top = widget.geometry().top()
-        bottom = widget.geometry().bottom()
-        if top <= previous_bottom:
-            raise RuntimeError(f"右侧数据栏控件重叠：{widget.objectName()}")
-        previous_bottom = bottom
+def validate_home_bottom(window, app):
+    window.goto(0)
+    app.processEvents()
+    scroll = window.stack.widget(0)
+    bar = scroll.verticalScrollBar()
+    bar.setValue(bar.maximum())
+    pump(app, 0.25)
+
+    if bar.value() != bar.maximum():
+        raise RuntimeError("首页滚动条无法到达最大值。")
+
+    last = window.home_capability_rows[-1]
+    bottom = last.mapTo(scroll.viewport(), QPoint(0, last.height())).y()
+    remaining = scroll.viewport().height() - bottom
+    if remaining < 20:
+        raise RuntimeError(
+            f"首页最后一项滚到底后仅剩 {remaining}px 空白，小于 20px。"
+        )
+
+    pipeline_last = window.home_pipeline_steps[-1]
+    pipeline_bottom = pipeline_last.mapTo(
+        scroll.viewport(), QPoint(0, pipeline_last.height())
+    ).y()
+    if pipeline_bottom > scroll.viewport().height() - 20:
+        raise RuntimeError("首页“评价与交付”未完整露出。")
+
+    return remaining
+
+
+def validate_default_ratio(window):
+    rail = window.data_lens.width()
+    workspace = window.stack.width()
+    ratio = workspace / (workspace + rail)
+    if not 0.80 <= ratio <= 0.84:
+        raise RuntimeError(
+            f"默认窗口主工作区占比 {ratio:.3f}，未落在 80%–84%。"
+        )
+    body_total = window.home_pipeline.width() + window.home_capability.width()
+    pipeline_ratio = window.home_pipeline.width() / body_total
+    if not 0.64 <= pipeline_ratio <= 0.69:
+        raise RuntimeError(
+            f"首页分析路径占比 {pipeline_ratio:.3f}，未达到约 2:1。"
+        )
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scale", type=float, choices=(1.0, 1.25), default=1.0)
+    parser.add_argument("--profile", choices=tuple(PROFILES), default="1080_100")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    profile = "100" if args.scale == 1.0 else "125"
-    output = root / "screenshots" / profile
+    width, height, scale = PROFILES[args.profile]
+    output = root / "screenshots" / args.profile
     output.mkdir(parents=True, exist_ok=True)
 
     app = QApplication.instance() or QApplication(sys.argv)
@@ -119,34 +153,42 @@ def main():
     app.setStyleSheet(STYLE)
 
     window = MainWindow()
-    # 1920×1080 在 125% 缩放下的常见等效逻辑工作区约为 1536×864。
-    if args.scale == 1.0:
-        window.resize(1920, 1080)
-    else:
-        window.resize(1536, 864)
+    window.resize(width, height)
     window.show()
-    pump(app)
-
+    pump(app, 0.4)
     window.load_demo_data()
-    validate_key_geometry(window, app)
+    window.goto(0)
+    pump(app, 0.4)
 
-    # 视觉验收只检查布局和文字可读性，不在 headless 截图任务中执行
-    # Matplotlib 的复杂结果绘制；算法与图形正确性由完整测试套件负责。
-    pages = [
-        (0, "01_home.png"),
-        (1, "02_data.png"),
-        (2, "03_statistics_layout.png"),
-        (3, "04_pca_layout.png"),
-        (4, "05_reduction_layout.png"),
-        (5, "06_clustering_layout.png"),
-        (6, "07_evaluation_layout.png"),
-        (7, "08_results_layout.png"),
-    ]
-    for section, name in pages:
-        snapshot(app, window, section, name, output, args.scale)
+    validate_shell(window, app)
+    if args.profile == "default":
+        validate_default_ratio(window)
+
+    home_scroll = window.stack.widget(0)
+    home_scroll.verticalScrollBar().setValue(0)
+    snapshot(app, window, "01_home_top.png", output, scale)
+
+    bottom_space = validate_home_bottom(window, app)
+    snapshot(app, window, "02_home_bottom.png", output, scale)
+
+    # 100%/125% 下额外检查参数较多的功能页。
+    if args.profile in {"1080_100", "1080_125"}:
+        for page, filename in [
+            (3, "03_pca.png"),
+            (4, "04_reduction.png"),
+            (5, "05_clustering.png"),
+        ]:
+            window.goto(page)
+            scroll = window.stack.currentWidget()
+            scroll.verticalScrollBar().setValue(0)
+            snapshot(app, window, filename, output, scale)
 
     window.close()
-    print(f"Visual profile {profile}% passed: {len(list(output.glob('*.png')))} screenshots.", flush=True)
+    print(
+        f"Visual profile {args.profile} passed; "
+        f"home bottom whitespace={bottom_space}px.",
+        flush=True,
+    )
     return 0
 
 
@@ -155,6 +197,8 @@ if __name__ == "__main__":
         sys.exit(main())
     except Exception:
         import traceback
-        message = traceback.format_exc().encode("ascii", "backslashreplace").decode("ascii")
+        message = traceback.format_exc().encode(
+            "ascii", "backslashreplace"
+        ).decode("ascii")
         print(message, file=sys.stderr, flush=True)
         raise

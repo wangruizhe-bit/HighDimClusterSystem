@@ -295,34 +295,58 @@ class ClusterPage(QWidget):
 
     def _plot(self, result):
         ratios = result.projection_ratios
-        a = self.scatter2d.new_axes()
-        self._scatter(a, result.coords, 2)
-        a.set_xlabel(f"PC1 ({ratios[0]*100:.1f}%)")
-        a.set_ylabel(f"PC2 ({ratios[1]*100:.1f}%)")
-        a.set_title(f"{result.label} · 二维 PCA 投影")
-        a.grid(alpha=.15)
-        self.scatter2d.draw_idle()
+
+        def build_2d(a):
+            self._scatter(a, result.coords, 2)
+            a.set_xlabel(f"PC1 ({ratios[0]*100:.1f}%)")
+            a.set_ylabel(f"PC2 ({ratios[1]*100:.1f}%)")
+            a.set_title(f"{result.label} · 二维 PCA 投影")
+            a.grid(alpha=.15)
+
+        self.scatter2d.safe_update(
+            f"{result.label}二维聚类图", build_2d,
+            force_draw=self.scatter2d.isVisible(),
+        )
 
         if "PC3" in result.coords:
-            a = self.scatter3d.new_axes(three_d=True)
-            self._scatter(a, result.coords, 3)
-            a.set_xlabel("PC1")
-            a.set_ylabel("PC2")
-            a.set_zlabel("PC3")
-            a.set_title(f"{result.label} · 三维 PCA 投影")
-            self.scatter3d.draw_idle()
+            def build_3d(a):
+                self._scatter(a, result.coords, 3)
+                a.set_xlabel("PC1")
+                a.set_ylabel("PC2")
+                a.set_zlabel("PC3")
+                a.set_title(f"{result.label} · 三维 PCA 投影")
+
+            self.scatter3d.safe_update(
+                f"{result.label}三维聚类图", build_3d, three_d=True,
+                force_draw=self.scatter3d.isVisible(),
+            )
         else:
-            self.scatter3d.clear_message("所选变量少于三列，不能生成三维 PCA 投影。")
+            self.scatter3d.clear_message(
+                "所选变量少于三列，不能生成三维 PCA 投影。",
+                request_draw=self.scatter3d.isVisible(),
+            )
 
         if result.linkage_matrix is not None:
             if result.n_samples <= 160:
-                a = self.tree_canvas.new_axes()
-                dendrogram(result.linkage_matrix, ax=a, no_labels=True,
-                           color_threshold=0)
-                a.set_title("层次聚类树状图")
-                a.set_ylabel("合并距离")
-                self.tree_canvas.draw_idle()
+                def build_tree(a):
+                    dendrogram(
+                        result.linkage_matrix, ax=a, no_labels=True,
+                        color_threshold=0,
+                    )
+                    a.set_title("层次聚类树状图")
+                    a.set_ylabel("合并距离")
+
+                self.tree_canvas.safe_update(
+                    "层次聚类树状图", build_tree,
+                    force_draw=self.tree_canvas.isVisible(),
+                )
             else:
-                self.tree_canvas.clear_message("样本数超过 160：保留层次聚类结果，不显示拥挤的树状图。")
+                self.tree_canvas.clear_message(
+                    "样本数超过 160：保留层次聚类结果，不显示拥挤的树状图。",
+                    request_draw=self.tree_canvas.isVisible(),
+                )
         else:
-            self.tree_canvas.clear_message("本次不是层次聚类；树状图不适用。")
+            self.tree_canvas.clear_message(
+                "本次不是层次聚类；树状图不适用。",
+                request_draw=self.tree_canvas.isVisible(),
+            )

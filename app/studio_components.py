@@ -7,8 +7,8 @@
 """
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
-    QVBoxLayout, QWidget,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
+    QSizePolicy, QVBoxLayout, QWidget,
 )
 
 
@@ -24,9 +24,9 @@ PAGE_HINTS = [
 ]
 
 
-def studio_label(text, name=None):
+def studio_label(text, name=None, wrap=True):
     widget = QLabel(str(text))
-    widget.setWordWrap(True)
+    widget.setWordWrap(bool(wrap))
     if name:
         widget.setObjectName(name)
     return widget
@@ -38,7 +38,7 @@ class StudioHeader(QFrame):
     def __init__(self, import_callback, result_callback, parent=None):
         super().__init__(parent)
         self.setObjectName("studioHeader")
-        self.setFixedHeight(104)
+        self.setFixedHeight(112)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(28, 14, 28, 14)
         layout.setSpacing(18)
@@ -51,8 +51,9 @@ class StudioHeader(QFrame):
 
         brand = QVBoxLayout()
         brand.setSpacing(3)
-        self.brand_title = studio_label("高维数据降维与聚类分析系统", "studioBrand")
-        self.brand_subtitle = studio_label("V1.0  ·  High-Dimensional Data Analysis", "studioBrandSub")
+        self.brand_title = studio_label("高维数据降维与聚类分析系统", "studioBrand", wrap=False)
+        self.brand_title.setMinimumWidth(430)
+        self.brand_subtitle = studio_label("V1.0  ·  High-Dimensional Data Analysis", "studioBrandSub", wrap=False)
         brand.addWidget(self.brand_title)
         brand.addWidget(self.brand_subtitle)
         layout.addLayout(brand)
@@ -63,10 +64,11 @@ class StudioHeader(QFrame):
         ctx = QVBoxLayout(context)
         ctx.setContentsMargins(16, 9, 16, 9)
         ctx.setSpacing(2)
-        self.dataset_caption = studio_label("当前数据集", "datasetEyebrow")
+        self.dataset_caption = studio_label("当前数据集", "datasetEyebrow", wrap=False)
         ctx.addWidget(self.dataset_caption)
-        self.dataset_text = studio_label("尚未导入数据", "datasetValue")
-        self.dataset_text.setMinimumWidth(280)
+        self.dataset_text = studio_label("尚未导入数据", "datasetValue", wrap=False)
+        self.dataset_text.setFixedWidth(330)
+        self.dataset_text.setMinimumHeight(24)
         ctx.addWidget(self.dataset_text)
         layout.addWidget(context)
 
@@ -84,8 +86,10 @@ class StudioHeader(QFrame):
             self.dataset_text.setText("尚未导入数据")
             return
         name = summary.get("name") or "当前数据"
+        if len(name) > 24:
+            name = name[:21] + "…"
         self.dataset_text.setText(
-            f"{name}   ·   {summary.get('rows', 0)} × {summary.get('columns', 0)}"
+            f"{name}  ·  {summary.get('rows', 0)} × {summary.get('columns', 0)}"
         )
 
 
@@ -196,38 +200,53 @@ class MetricGrid(QWidget):
 
 
 class DataLensRail(QFrame):
-    """第三软著的持久数据上下文栏。
-
-    它不是导航栏：页面切换仍由顶部 Mode Strip 完成。
-    右侧仅展示数据质量、分析进度和当前页面提示，从结构上区别于前两个软著。
-    """
+    """右侧数据概览栏。内容不足时正常铺开，高 DPI 下可垂直滚动。"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("dataLensRail")
-        self.setFixedWidth(292)
-        box = QVBoxLayout(self)
-        box.setContentsMargins(20, 18, 20, 18)
-        box.setSpacing(10)
+        self.setFixedWidth(310)
 
-        self.title_label = studio_label("数据概览", "lensTitle")
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("lensScroll")
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        outer.addWidget(self.scroll)
+
+        content = QWidget()
+        content.setObjectName("lensContent")
+        self.scroll.setWidget(content)
+        box = QVBoxLayout(content)
+        box.setContentsMargins(20, 18, 20, 18)
+        box.setSpacing(11)
+
+        self.title_label = studio_label("数据概览", "lensTitle", wrap=False)
+        self.title_label.setMinimumHeight(30)
         box.addWidget(self.title_label)
 
         self.dataset_card = QFrame()
         self.dataset_card.setObjectName("lensDatasetCard")
+        self.dataset_card.setMinimumHeight(96)
         card = QVBoxLayout(self.dataset_card)
-        card.setContentsMargins(15, 14, 15, 14)
+        card.setContentsMargins(15, 13, 15, 13)
         card.setSpacing(5)
-        card.addWidget(studio_label("当前数据集", "lensCardEyebrow"))
-        self.dataset_name = studio_label("尚未导入", "lensDatasetName")
+        self.dataset_caption = studio_label("当前数据集", "lensCardEyebrow", wrap=False)
+        card.addWidget(self.dataset_caption)
+        self.dataset_name = studio_label("尚未导入", "lensDatasetName", wrap=False)
         self.dataset_name.setMinimumHeight(24)
         card.addWidget(self.dataset_name)
-        self.dataset_shape = studio_label("0 × 0", "lensDatasetShape")
+        self.dataset_shape = studio_label("等待数据", "lensDatasetShape", wrap=False)
         self.dataset_shape.setMinimumHeight(20)
         card.addWidget(self.dataset_shape)
         box.addWidget(self.dataset_card)
 
-        box.addWidget(studio_label("数据质量", "lensSection"))
+        self.quality_title = studio_label("数据质量", "lensSection", wrap=False)
+        box.addWidget(self.quality_title)
         self.rows = self._metric("样本", "0")
         self.numeric = self._metric("数值变量", "0")
         self.missing = self._metric("缺失", "0")
@@ -235,46 +254,50 @@ class DataLensRail(QFrame):
         for item in (self.rows, self.numeric, self.missing, self.duplicates):
             box.addWidget(item[0])
 
-        box.addWidget(studio_label("分析记录", "lensSection"))
-        self.result_value = studio_label("0", "lensResultValue")
-        self.result_caption = studio_label("当前数据版本尚无分析结果", "lensResultCaption")
+        self.records_title = studio_label("分析记录", "lensSection", wrap=False)
+        box.addWidget(self.records_title)
+        self.result_value = studio_label("0", "lensResultValue", wrap=False)
+        self.result_caption = studio_label("尚无分析结果", "lensResultCaption", wrap=False)
         result_box = QFrame()
         result_box.setObjectName("lensResultCard")
-        result_box.setMinimumHeight(62)
+        result_box.setMinimumHeight(82)
         result_layout = QVBoxLayout(result_box)
-        result_layout.setContentsMargins(15, 13, 15, 13)
-        result_layout.setSpacing(4)
+        result_layout.setContentsMargins(15, 11, 15, 11)
+        result_layout.setSpacing(2)
         result_layout.addWidget(self.result_value)
         result_layout.addWidget(self.result_caption)
         box.addWidget(result_box)
 
-        box.addWidget(studio_label("当前位置", "lensSection"))
-        self.mode_code = studio_label("01", "lensModeCode")
-        self.mode_title = studio_label("分析首页", "lensModeTitle")
-        self.mode_hint = studio_label(PAGE_HINTS[0], "lensModeHint")
-        self.mode_hint.setVisible(False)
+        self.position_title = studio_label("当前位置", "lensSection", wrap=False)
+        box.addWidget(self.position_title)
+        self.mode_code = studio_label("01", "lensModeCode", wrap=False)
+        self.mode_title = studio_label("分析首页", "lensModeTitle", wrap=False)
         self.mode_title.setMinimumHeight(24)
         box.addWidget(self.mode_code)
         box.addWidget(self.mode_title)
+
         box.addStretch(1)
 
         offline = QFrame()
         offline.setObjectName("lensOffline")
+        offline.setMinimumHeight(48)
         offline_layout = QVBoxLayout(offline)
-        offline_layout.setContentsMargins(14, 11, 14, 11)
+        offline_layout.setContentsMargins(14, 10, 14, 10)
         offline_layout.setSpacing(0)
-        offline_layout.addWidget(studio_label("本地计算 · 数据不上传", "lensOfflineTitle"))
+        offline_layout.addWidget(
+            studio_label("本地计算 · 数据不上传", "lensOfflineTitle", wrap=False)
+        )
         box.addWidget(offline)
 
     def _metric(self, title, value):
         frame = QFrame()
         frame.setObjectName("lensMetric")
-        frame.setMinimumHeight(38)
+        frame.setMinimumHeight(42)
         row = QHBoxLayout(frame)
-        row.setContentsMargins(12, 9, 12, 9)
+        row.setContentsMargins(12, 8, 12, 8)
         row.setSpacing(8)
-        caption = studio_label(title, "lensMetricCaption")
-        number = studio_label(value, "lensMetricValue")
+        caption = studio_label(title, "lensMetricCaption", wrap=False)
+        number = studio_label(value, "lensMetricValue", wrap=False)
         number.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(caption, 1)
         row.addWidget(number)
@@ -283,9 +306,12 @@ class DataLensRail(QFrame):
     def update_data(self, summary, result_count=0):
         summary = summary or {}
         imported = summary.get("rows", 0) > 0
-        self.dataset_name.setText(summary.get("name") if imported else "尚未导入")
+        name = summary.get("name") if imported else "尚未导入"
+        if name and len(name) > 22:
+            name = name[:19] + "…"
+        self.dataset_name.setText(name or "当前数据")
         self.dataset_shape.setText(
-            f"{summary.get('rows', 0)} × {summary.get('columns', 0)}"
+            f"{summary.get('rows', 0)} 行 × {summary.get('columns', 0)} 列"
             if imported else "等待数据"
         )
         self.rows[1].setText(str(summary.get("rows", 0)))
@@ -293,14 +319,11 @@ class DataLensRail(QFrame):
         self.missing[1].setText(str(summary.get("missing", 0)))
         self.duplicates[1].setText(str(summary.get("duplicates", 0)))
         self.result_value.setText(str(result_count))
-        self.result_caption.setText(
-            "当前数据版本的分析结果"
-            if result_count else "尚无分析结果"
-        )
+        self.result_caption.setText("当前数据版本" if result_count else "尚无分析结果")
 
     def update_mode(self, index, title):
         if not 0 <= index < len(PAGE_HINTS):
             return
         self.mode_code.setText(f"{index + 1:02d}")
         self.mode_title.setText(title)
-        self.mode_hint.setText(PAGE_HINTS[index])
+

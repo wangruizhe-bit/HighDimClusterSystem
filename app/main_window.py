@@ -55,7 +55,7 @@ def card(title=None):
     lay.setContentsMargins(20, 17, 20, 17)
     lay.setSpacing(12)
     if title:
-        lay.addWidget(label(title, "heading" if False else "subtitle"))
+        lay.addWidget(label(title, "cardTitle"))
     return frame, lay
 
 

@@ -51,8 +51,10 @@ class StudioHeader(QFrame):
 
         brand = QVBoxLayout()
         brand.setSpacing(3)
-        brand.addWidget(studio_label("高维数据降维与聚类分析系统", "studioBrand"))
-        brand.addWidget(studio_label("V1.0  ·  High-Dimensional Data Analysis", "studioBrandSub"))
+        self.brand_title = studio_label("高维数据降维与聚类分析系统", "studioBrand")
+        self.brand_subtitle = studio_label("V1.0  ·  High-Dimensional Data Analysis", "studioBrandSub")
+        brand.addWidget(self.brand_title)
+        brand.addWidget(self.brand_subtitle)
         layout.addLayout(brand)
         layout.addStretch(1)
 
@@ -61,7 +63,8 @@ class StudioHeader(QFrame):
         ctx = QVBoxLayout(context)
         ctx.setContentsMargins(16, 9, 16, 9)
         ctx.setSpacing(2)
-        ctx.addWidget(studio_label("当前数据集", "datasetEyebrow"))
+        self.dataset_caption = studio_label("当前数据集", "datasetEyebrow")
+        ctx.addWidget(self.dataset_caption)
         self.dataset_text = studio_label("尚未导入数据", "datasetValue")
         self.dataset_text.setMinimumWidth(280)
         ctx.addWidget(self.dataset_text)
@@ -207,7 +210,8 @@ class DataLensRail(QFrame):
         box.setContentsMargins(20, 20, 20, 20)
         box.setSpacing(13)
 
-        box.addWidget(studio_label("数据概览", "lensTitle"))
+        self.title_label = studio_label("数据概览", "lensTitle")
+        box.addWidget(self.title_label)
 
         self.dataset_card = QFrame()
         self.dataset_card.setObjectName("lensDatasetCard")

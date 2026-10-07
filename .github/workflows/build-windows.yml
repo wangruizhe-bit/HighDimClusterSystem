@@ -39,10 +39,14 @@ jobs:
           python -m pip install "pyinstaller>=6.11,<7"
       - name: Verify Python UI initialization
         run: python main.py --self-check
-      - name: Capture 1920x1080 interface at Windows 100% profile
-        run: python -m tools.capture_screenshots --scale 1.0
-      - name: Capture 1920x1080 interface at Windows 125% profile
-        run: python -m tools.capture_screenshots --scale 1.25
+      - name: Capture 1920x1080 interface at Windows 100%
+        run: python -m tools.capture_screenshots --profile 1080_100
+      - name: Capture 1920x1080 interface at Windows 125%
+        run: python -m tools.capture_screenshots --profile 1080_125
+      - name: Capture default 1600x940 interface
+        run: python -m tools.capture_screenshots --profile default
+      - name: Capture minimum 1180x760 interface
+        run: python -m tools.capture_screenshots --profile minimum
       - name: Build standalone Windows desktop app
         shell: pwsh
         run: |

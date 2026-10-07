@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 import pandas as pd
 from scipy.cluster.hierarchy import dendrogram
 
-from app.plot_canvas import PlotCanvas
+from app.plot_canvas import PlotCanvas, StaticPlotCanvas
 from app.table_model import FrameTableModel
 from core.clustering import ALGORITHMS, fit_clustering
 
@@ -151,7 +151,7 @@ class ClusterPage(QWidget):
             self.tabs.addTab(view, label)
 
         self.scatter2d = PlotCanvas()
-        self.scatter3d = PlotCanvas(three_d=True)
+        self.scatter3d = StaticPlotCanvas(three_d=True)
         self.tree_canvas = PlotCanvas()
         for name, canvas in [
             ("二维 PCA 投影聚类图", self.scatter2d),

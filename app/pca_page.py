@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.diagnostics import log_plot_exception
-from app.plot_canvas import PlotCanvas, StaticPlotCanvas
+from app.plot_canvas import StaticPlotCanvas
 from app.table_model import FrameTableModel
 from core.pca import fit_pca
 
@@ -103,8 +103,10 @@ class PCAPage(QWidget):
             self.tables[attr] = model
             self.tabs.addTab(view, title)
 
-        self.variance_canvas = PlotCanvas()
-        self.scatter2d_canvas = PlotCanvas()
+        # PCA 图形使用 Agg 离屏渲染后显示为静态图，避免 QTabWidget
+        # 高频切换时 QtAgg PaintEvent 在 Windows 上触发 native stack overflow。
+        self.variance_canvas = StaticPlotCanvas(three_d=False)
+        self.scatter2d_canvas = StaticPlotCanvas(three_d=False)
         self.scatter3d_canvas = StaticPlotCanvas(three_d=True)
         for title, canvas in [
             ("方差贡献率与碎石图", self.variance_canvas),

@@ -88,22 +88,31 @@ def run_pca_gui_self_check(window, *, cycles: int = 20) -> dict:
         if page.result is None or page.result.chosen_components != 3:
             raise RuntimeError(f"PCA 第 {cycle + 1} 轮没有产生 k=3 结果。")
         for index in sequence:
+            print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=before_set", flush=True)
             page.tabs.setCurrentIndex(index)
+            print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_set", flush=True)
             app.processEvents()
+            print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_events", flush=True)
             canvas = plot_by_tab.get(index)
             if canvas is not None:
                 canvas.draw()
+                print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_draw", flush=True)
             app.processEvents()
+            print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_draw_events", flush=True)
             _grab(window, f"PCA cycle={cycle + 1}, tab={index}")
+            print(f"PCA_TRACE cycle={cycle + 1} tab={index} phase=after_grab", flush=True)
 
     # 额外快速切换 20 轮，模拟用户快速点击标签。
     for cycle in range(20):
         for index in range(page.tabs.count()):
+            print(f"PCA_RAPID cycle={cycle + 1} tab={index} phase=before_set", flush=True)
             page.tabs.setCurrentIndex(index)
             app.processEvents()
+            print(f"PCA_RAPID cycle={cycle + 1} tab={index} phase=after_events", flush=True)
             canvas = plot_by_tab.get(index)
             if canvas is not None:
                 canvas.draw()
+                print(f"PCA_RAPID cycle={cycle + 1} tab={index} phase=after_draw", flush=True)
         _grab(window, f"PCA rapid tabs={cycle + 1}")
 
     page.tabs.setCurrentIndex(page.SCATTER_3D_TAB)

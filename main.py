@@ -21,7 +21,11 @@ def main():
                 win.goto(index)
                 if win.stack.currentIndex() != index:
                     raise RuntimeError("功能页面无法正常切换。")
-            print("HighDimClusterSystem V1.0: startup self-check passed", flush=True)
+            win.load_demo_data()
+            summary = win.session.data.summary()
+            if summary.get("rows") != 90 or summary.get("numeric") != 8:
+                raise RuntimeError("内置示例数据未正确打包或无法加载。")
+            print("HighDimClusterSystem V1.0: startup + demo-data self-check passed", flush=True)
             return 0
         finally:
             win.close()

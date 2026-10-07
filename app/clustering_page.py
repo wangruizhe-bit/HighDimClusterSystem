@@ -52,7 +52,7 @@ class ClusterPage(QWidget):
         variable_layout.addWidget(QLabel("选择数值变量（不选择默认全部数值变量）"))
         self.variables = QListWidget()
         self.variables.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.variables.setMaximumHeight(170)
+        self.variables.setMaximumHeight(195)
         variable_layout.addWidget(self.variables)
         horizontal.addLayout(variable_layout, 3)
 
@@ -162,10 +162,7 @@ class ClusterPage(QWidget):
             self.tabs.addTab(canvas, name)
         root.addWidget(self.tabs)
 
-        self.notes = QLabel(
-            "说明：聚类标签和质量指标依据选定的原始特征空间（及所选标准化方案）计算；"
-            "PCA 仅用于可视化，不参与聚类计算。DBSCAN 中 -1 为噪声，不作为有效簇。"
-        )
+        self.notes = QLabel("PCA 投影仅用于绘图；DBSCAN 中 -1 表示噪声，不计入有效簇。")
         self.notes.setWordWrap(True)
         root.addWidget(self.notes)
         self.session.data_changed.connect(self.on_data_changed)

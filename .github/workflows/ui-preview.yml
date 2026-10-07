@@ -35,9 +35,13 @@ jobs:
           sudo apt-get install -y libegl1 libopengl0 fonts-noto-cjk
           python -m pip install -r requirements.txt
       - name: Capture 1080p 100% profile
-        run: python -m tools.capture_screenshots --scale 1.0
+        run: python -m tools.capture_screenshots --profile 1080_100
       - name: Capture 1080p 125% equivalent profile
-        run: python -m tools.capture_screenshots --scale 1.25
+        run: python -m tools.capture_screenshots --profile 1080_125
+      - name: Capture default 1600x940 profile
+        run: python -m tools.capture_screenshots --profile default
+      - name: Capture minimum 1180x760 profile
+        run: python -m tools.capture_screenshots --profile minimum
       - name: Upload Data Studio preview screenshots
         uses: actions/upload-artifact@v4
         with:

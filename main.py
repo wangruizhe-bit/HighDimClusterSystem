@@ -10,6 +10,14 @@ os.environ.setdefault("QT_API", "pyside6")
 os.environ.setdefault("MPLBACKEND", "QtAgg")
 
 import matplotlib
+
+# 用字面量显式选择 backend，既保证运行时一致，也让 PyInstaller 的
+# Matplotlib hook 能在静态扫描时识别 QtAgg。无头测试明确设置 Agg 时保留 Agg。
+if os.environ.get("MPLBACKEND", "").lower() == "agg":
+    matplotlib.use("Agg", force=True)
+else:
+    matplotlib.use("QtAgg", force=True)
+
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 

@@ -6,7 +6,7 @@
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QComboBox, QFrame
+from PySide6.QtWidgets import QApplication, QComboBox, QFrame, QLabel
 from app.main_window import MainWindow
 
 
@@ -78,15 +78,16 @@ def test_readable_typography_and_chinese_copy():
     assert window.studio_header.findChild(QFrame, "datasetCapsule") is not None
     assert window.studio_header.dataset_text.fontMetrics().height() >= 13
     assert "高维数据降维与聚类分析系统" in window.windowTitle()
-    assert "CURRENT DATASET" not in window.studio_header.findChildren(type(window.data_lens.mode_title))[0].text()
+    assert window.studio_header.brand_title.text() == "高维数据降维与聚类分析系统"
+    assert window.studio_header.dataset_caption.text() == "当前数据集"
+    assert window.data_lens.title_label.text() == "数据概览"
 
     banned = {
         "DATA LENS", "DATA QUALITY", "ANALYSIS SNAPSHOTS", "CURRENT MODE",
         "WORKSPACE STATUS", "DATA DISCOVERY / DIMENSION REDUCTION / CLUSTERING",
     }
     all_text = "\n".join(
-        widget.text() for widget in window.findChildren(type(window.data_lens.mode_title))
-        if hasattr(widget, "text")
+        widget.text() for widget in window.findChildren(QLabel)
     )
     for phrase in banned:
         assert phrase not in all_text

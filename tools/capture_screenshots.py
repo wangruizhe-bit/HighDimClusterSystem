@@ -10,7 +10,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QFont, QPixmap
+from PySide6.QtGui import QFont, QImage, QPainter
 from app.main_window import MainWindow
 from app.styles import STYLE
 
@@ -37,12 +37,16 @@ def snapshot(app, window, section, name, destination):
     window.goto(section)
     pump(app)
     target = destination / name
-    # QWidget.grab() 在部分 Windows/offscreen Qt 组合下会由原生层直接退出。
-    # 使用 QWidget.render() 渲染到 QPixmap，可得到同一真实界面且更稳定。
-    pixmap = QPixmap(window.size())
-    pixmap.fill(Qt.GlobalColor.transparent)
-    window.render(pixmap)
-    result = pixmap.save(str(target), "PNG")
+    # Windows Server 没有真实桌面。使用纯内存 QImage + QPainter 渲染 QWidget，
+    # 避免 QPixmap 依赖原生窗口缓冲区导致 headless 环境退出。
+    image = QImage(window.size(), QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.white)
+    painter = QPainter(image)
+    try:
+        window.render(painter)
+    finally:
+        painter.end()
+    result = image.save(str(target), "PNG")
     if not result or target.stat().st_size < 10000:
         raise RuntimeError(f"截图无效或文件过小：{target}")
     print(f'Screenshot saved: page {section}, size={target.stat().st_size} bytes')
@@ -56,15 +60,15 @@ def main():
     app.setFont(QFont("Microsoft YaHei", 10))
     app.setStyleSheet(STYLE)
     window = MainWindow()
-    window.resize(1440, 900)
+    window.resize(1600, 900)
     window.show()
     pump(app)
     window.session.load(str(root / "data" / "sample_data.csv"))
-    snapshot(app, window, 0, "01_分析首页.png", output)
-    snapshot(app, window, 1, "02_数据管理.png", output)
+    snapshot(app, window, 0, "01_home.png", output)
+    snapshot(app, window, 1, "02_data.png", output)
     window.calculate_stats("describe")
     window.draw_heatmap()
-    snapshot(app, window, 2, "03_特征统计.png", output)
+    snapshot(app, window, 2, "03_statistics.png", output)
 
     window.pca_page.mode.setCurrentIndex(1)
     window.pca_page.count.setValue(3)
@@ -72,7 +76,7 @@ def main():
     if window.pca_page.result is None:
         raise RuntimeError("PCA 实际运行失败。")
     window.pca_page.tabs.setCurrentIndex(4)
-    snapshot(app, window, 3, "04_PCA可视化.png", output)
+    snapshot(app, window, 3, "04_pca.png", output)
 
     window.cluster_page.method_combo.setCurrentIndex(0)
     window.cluster_page.start_analysis()
@@ -80,12 +84,20 @@ def main():
     if window.cluster_page.current_result is None:
         raise RuntimeError("K-means 实际运行失败。")
     window.cluster_page.tabs.setCurrentIndex(5)
-    snapshot(app, window, 5, "05_聚类可视化.png", output)
-    snapshot(app, window, 6, "06_聚类评价.png", output)
-    snapshot(app, window, 7, "07_结果中心.png", output)
+    snapshot(app, window, 5, "05_clustering.png", output)
+    snapshot(app, window, 6, "06_evaluation.png", output)
+    snapshot(app, window, 7, "07_results.png", output)
     window.close()
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:
+        import traceback
+        # GitHub Windows 控制台编码并不总能输出中文异常文本。
+        # 使用 ASCII backslash 转义保证诊断信息一定能进入 Actions 日志。
+        message = traceback.format_exc().encode("ascii", "backslashreplace").decode("ascii")
+        print(message, file=sys.stderr, flush=True)
+        raise

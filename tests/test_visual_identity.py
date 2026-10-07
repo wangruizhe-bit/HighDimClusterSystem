@@ -122,3 +122,52 @@ def test_125_percent_equivalent_workspace_keeps_key_controls_visible():
         assert button.width() >= 95
 
     window.close()
+
+
+def test_demo_dataset_is_bundled_and_one_click_loads():
+    from PySide6.QtWidgets import QApplication
+    from app.main_window import MainWindow
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow()
+    window.load_demo_data()
+    app.processEvents()
+
+    summary = window.session.data.summary()
+    assert summary["rows"] == 90
+    assert summary["numeric"] == 8
+    assert summary["columns"] == 11
+    assert window.session.data.current_data["Group"].nunique() == 3
+    assert window.stack.currentIndex() == 1
+    assert "demo_high_dimensional" in summary["name"]
+    window.close()
+
+
+def test_125_percent_right_rail_blocks_do_not_overlap():
+    from PySide6.QtWidgets import QApplication
+    from app.main_window import MainWindow
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow()
+    window.resize(1536, 864)
+    window.show()
+    window.load_demo_data()
+    app.processEvents()
+
+    # 顶部品牌应保持单行。
+    title = window.studio_header.brand_title
+    assert title.wordWrap() is False
+    assert title.height() <= title.fontMetrics().lineSpacing() * 2
+
+    rail = window.data_lens
+    ordered = [
+        rail.title_label, rail.dataset_card, rail.quality_title,
+        rail.rows[0], rail.numeric[0], rail.missing[0], rail.duplicates[0],
+        rail.records_title, rail.result_box, rail.position_title,
+        rail.mode_code, rail.mode_title,
+    ]
+    bottoms = []
+    for widget in ordered:
+        top = widget.geometry().top()
+        assert not bottoms or top > bottoms[-1]
+        bottoms.append(widget.geometry().bottom())
+    assert rail.scroll.verticalScrollBar().maximum() >= 0
+    window.close()

@@ -50,8 +50,8 @@ jobs:
       - name: Report versions
         run: |
           python -c "import PySide6, matplotlib, numpy; print('PySide6', PySide6.__version__); print('Matplotlib', matplotlib.__version__); print('NumPy', numpy.__version__); print('Backend', matplotlib.get_backend())"
-      - name: Run real PCA Qt stress
-        run: python main.py --pca-gui-self-check
+      - name: Run real PCA Qt stress and print diagnostics
+        run: python -m tools.run_with_logs python main.py --pca-gui-self-check
 
   legacy-current:
     name: legacy implementation on former 6.11.2 / 3.11.2 / 2.5.3
@@ -82,5 +82,5 @@ jobs:
       - name: Report versions
         run: |
           python -c "import PySide6, matplotlib, numpy; print('PySide6', PySide6.__version__); print('Matplotlib', matplotlib.__version__); print('NumPy', numpy.__version__); print('Backend', matplotlib.get_backend())"
-      - name: Run legacy PCA reproduction loop
-        run: python -m tools.legacy_pca_repro
+      - name: Run legacy PCA reproduction loop and print diagnostics
+        run: python -m tools.run_with_logs python -m tools.legacy_pca_repro

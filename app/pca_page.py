@@ -29,7 +29,7 @@ class PCAPage(QWidget):
         grid.addWidget(QLabel("参与分析的数值变量（可多选，不选择则使用全部数值变量）"), 0, 0, 1, 2)
         self.variables = QListWidget()
         self.variables.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.variables.setMaximumHeight(148)
+        self.variables.setMaximumHeight(180)
         grid.addWidget(self.variables, 1, 0, 5, 2)
 
         self.standardize = QCheckBox("进行 Z-score 标准化")
@@ -96,8 +96,7 @@ class PCAPage(QWidget):
             canvas.setMinimumHeight(400)
             self.tabs.addTab(canvas, title)
         root.addWidget(self.tabs)
-        self.notes = QLabel("说明：载荷 = 原始输入变量与主成分得分的 Pearson 相关系数；"
-                            "主成分系数 = 特征向量。各分析结果均来自当前工作数据。")
+        self.notes = QLabel("载荷表示变量与主成分得分的相关性；主成分系数为特征向量。")
         self.notes.setWordWrap(True)
         root.addWidget(self.notes)
 

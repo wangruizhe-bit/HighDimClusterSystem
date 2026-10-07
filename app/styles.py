@@ -391,6 +391,9 @@ QPushButton {
     font-size: 14px;
     font-weight: 600;
 }
+QPushButton { min-height: 20px; }
+QPushButton#headerPrimary, QPushButton#headerGhost { min-height: 24px; }
+
 QPushButton:hover {
     background: #f5f1ff;
     color: #5d46bb;
@@ -409,6 +412,7 @@ QPushButton#primary:hover { background: #8067e4; border-color: #8067e4; }
 QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QListWidget, QTableView {
     background: #ffffff;
     font-size: 14px;
+    min-height: 24px;
     border: 1px solid #ddd8e6;
     border-radius: 7px;
     padding: 5px;
@@ -419,7 +423,8 @@ QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus,
 QListWidget:focus, QTableView:focus {
     border: 1px solid #8c73e8;
 }
-QListWidget::item { padding: 8px 7px; border-radius: 4px; }
+QListWidget::item { padding: 9px 8px; border-radius: 4px; }
+QTableView::item { padding: 7px 8px; }
 QListWidget::item:selected { background: #e9e3ff; color: #503cad; }
 
 QTableView {
@@ -459,7 +464,7 @@ QTabBar::tab:selected {
     font-weight: 800;
     border-top: 3px solid #7b5ce2;
 }
-QCheckBox { spacing: 7px; }
+QCheckBox { spacing: 8px; font-size: 14px; }
 QCheckBox::indicator { width: 16px; height: 16px; }
 
 QStatusBar {

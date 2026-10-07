@@ -299,7 +299,7 @@ class ClusterPage(QWidget):
         self._scatter(a, result.coords, 2)
         a.set_xlabel(f"PC1 ({ratios[0]*100:.1f}%)")
         a.set_ylabel(f"PC2 ({ratios[1]*100:.1f}%)")
-        a.set_title(f"{result.label} · PCA projection of cluster labels")
+        a.set_title(f"{result.label} · 二维 PCA 投影")
         a.grid(alpha=.15)
         self.scatter2d.draw_idle()
 
@@ -309,7 +309,7 @@ class ClusterPage(QWidget):
             a.set_xlabel("PC1")
             a.set_ylabel("PC2")
             a.set_zlabel("PC3")
-            a.set_title(f"{result.label} · three-dimensional PCA projection")
+            a.set_title(f"{result.label} · 三维 PCA 投影")
             self.scatter3d.draw_idle()
         else:
             self.scatter3d.clear_message("所选变量少于三列，不能生成三维 PCA 投影。")
@@ -319,8 +319,8 @@ class ClusterPage(QWidget):
                 a = self.tree_canvas.new_axes()
                 dendrogram(result.linkage_matrix, ax=a, no_labels=True,
                            color_threshold=0)
-                a.set_title("Hierarchical clustering dendrogram")
-                a.set_ylabel("Merge distance")
+                a.set_title("层次聚类树状图")
+                a.set_ylabel("合并距离")
                 self.tree_canvas.draw_idle()
             else:
                 self.tree_canvas.clear_message("样本数超过 160：保留层次聚类结果，不显示拥挤的树状图。")

@@ -225,8 +225,9 @@ class StaticPlotCanvas(QWidget):
         try:
             axes = self.new_axes(three_d=three_d)
             callback(axes)
-            if force_draw or self.isVisible():
-                self.draw()
+            # StaticPlotCanvas 使用纯 Agg 离屏渲染；即使控件当前隐藏也可以安全生成
+            # QImage 缓存，用户首次切换到该 Tab 时不会出现空白或旧占位图。
+            self.draw()
             return True
         except Exception as exc:
             return _report_draw_error(self, self._last_plot_title, exc)
@@ -239,8 +240,8 @@ class StaticPlotCanvas(QWidget):
                 left=.10, right=.96, bottom=.12, top=.90, wspace=.28
             )
             callback(self.figure)
-            if force_draw or self.isVisible():
-                self.draw()
+            # 纯 Agg 渲染不依赖 Qt PaintEvent，隐藏状态下生成缓存是安全的。
+            self.draw()
             return True
         except Exception as exc:
             return _report_draw_error(self, self._last_plot_title, exc)

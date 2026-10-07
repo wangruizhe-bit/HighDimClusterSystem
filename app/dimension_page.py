@@ -337,9 +337,9 @@ class ReductionPage(QWidget):
         ax = canvas.new_axes()
         ax.scatter(vals["维度1"], vals["维度2"], s=29, alpha=.72,
                    edgecolors="white", linewidths=.45)
-        ax.set_xlabel("Dimension 1")
-        ax.set_ylabel("Dimension 2")
-        ax.set_title(f"{result.method_label} · 2D projection")
+        ax.set_xlabel("维度 1")
+        ax.set_ylabel("维度 2")
+        ax.set_title(f"{result.method_label} · 二维结果")
         ax.grid(alpha=.15)
         canvas.draw_idle()
         if result.dimensions == 3:
@@ -347,10 +347,10 @@ class ReductionPage(QWidget):
             ax = three.new_axes(three_d=True)
             ax.scatter(vals["维度1"], vals["维度2"], vals["维度3"],
                        s=29, alpha=.74, depthshade=True)
-            ax.set_xlabel("Dimension 1")
-            ax.set_ylabel("Dimension 2")
+            ax.set_xlabel("维度 1")
+            ax.set_ylabel("维度 2")
             ax.set_zlabel("Dimension 3")
-            ax.set_title(f"{result.method_label} · 3D embedding")
+            ax.set_title(f"{result.method_label} · 三维结果")
             three.draw_idle()
         else:
             self.canvas3d.clear_message("本次保留二维坐标；选择三维目标空间可绘制三维图")
@@ -411,7 +411,7 @@ class ReductionPage(QWidget):
             coords = result.coordinates
             ax.scatter(coords["维度1"], coords["维度2"], s=15, alpha=.7)
             ax.set_aspect("equal", adjustable="datalim")
-            ax.set_title(f"{result.method_label} · #{(ia, ib)[i]+1}", fontsize=10)
+            ax.set_title(f"{result.method_label} · 记录 {(ia, ib)[i]+1}", fontsize=13)
             ax.set_xlabel("Dimension 1")
             ax.set_ylabel("Dimension 2")
             ax.grid(alpha=.15)

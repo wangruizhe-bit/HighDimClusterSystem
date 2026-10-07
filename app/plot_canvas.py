@@ -14,6 +14,12 @@ def _choose_chinese_matplotlib_font():
     chosen = next((name for name in candidates if name in installed), "DejaVu Sans")
     rcParams["font.sans-serif"] = [chosen, "DejaVu Sans"]
     rcParams["axes.unicode_minus"] = False
+    rcParams["font.size"] = 11
+    rcParams["axes.titlesize"] = 13
+    rcParams["axes.labelsize"] = 12
+    rcParams["xtick.labelsize"] = 11
+    rcParams["ytick.labelsize"] = 11
+    rcParams["legend.fontsize"] = 11
 
 
 _choose_chinese_matplotlib_font()

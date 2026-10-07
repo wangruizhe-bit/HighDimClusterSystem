@@ -169,8 +169,8 @@ class PCAPage(QWidget):
         contribution = frame["方差贡献率(%)"].to_numpy()
         cumulative = frame["累计贡献率(%)"].to_numpy()
         axes.bar(xs, contribution, alpha=.85, label="Individual")
-        axes.set_xlabel("Principal component")
-        axes.set_ylabel("Explained variance (%)")
+        axes.set_xlabel("主成分")
+        axes.set_ylabel("方差贡献率（%）")
         axes.set_xticks(xs)
         axes.set_ylim(bottom=0)
         right = axes.twinx()
@@ -178,9 +178,9 @@ class PCAPage(QWidget):
         right.axhline(85, color="#9aaec3", linestyle="--", alpha=.8)
         right.axvline(result.chosen_components, color="#577fa3",
                       linestyle=":", alpha=.75)
-        right.set_ylabel("Cumulative variance (%)")
+        right.set_ylabel("累计贡献率（%）")
         right.set_ylim(0, 105)
-        axes.set_title("PCA explained variance and cumulative contribution")
+        axes.set_title("PCA 方差贡献率与累计贡献率")
         canvas.draw_idle()
 
     def draw_scores2d(self, result):
@@ -196,7 +196,7 @@ class PCAPage(QWidget):
         ax.axvline(0, color="#bdc9d7", lw=.8)
         ax.set_xlabel(f"PC1 ({result.eigen_table['方差贡献率(%)'].iat[0]:.1f}%)")
         ax.set_ylabel(f"PC2 ({result.eigen_table['方差贡献率(%)'].iat[1]:.1f}%)")
-        ax.set_title("PCA score plot (2D)")
+        ax.set_title("PCA 二维得分图")
         ax.grid(alpha=.15)
         canvas.draw_idle()
 
@@ -212,5 +212,5 @@ class PCAPage(QWidget):
         ax.set_xlabel("PC1")
         ax.set_ylabel("PC2")
         ax.set_zlabel("PC3")
-        ax.set_title("PCA score plot (3D)")
+        ax.set_title("PCA 三维得分图")
         canvas.draw_idle()

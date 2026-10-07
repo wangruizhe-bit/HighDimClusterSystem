@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 import pandas as pd
 
-from app.plot_canvas import PlotCanvas
+from app.plot_canvas import PlotCanvas, StaticPlotCanvas
 from app.table_model import FrameTableModel
 from core.dimension_reduction import METHOD_LABELS, fit_reduction
 
@@ -162,7 +162,7 @@ class ReductionPage(QWidget):
         self.metric_view.horizontalHeader().setStretchLastSection(True)
         self.result_tabs.addTab(self.metric_view, "计算指标")
         self.canvas2d = PlotCanvas()
-        self.canvas3d = PlotCanvas(three_d=True)
+        self.canvas3d = StaticPlotCanvas(three_d=True)
         self.canvas2d.setMinimumHeight(380)
         self.canvas3d.setMinimumHeight(380)
         self.result_tabs.addTab(self.canvas2d, "二维降维结果")

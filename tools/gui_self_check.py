@@ -83,7 +83,7 @@ def run_pca_gui_self_check(window, *, cycles: int = 20) -> dict:
     ]
 
     for cycle in range(cycles):
-        page.run_analysis()
+        page.run_button.click()
         app.processEvents()
         if page.result is None or page.result.chosen_components != 3:
             raise RuntimeError(f"PCA 第 {cycle + 1} 轮没有产生 k=3 结果。")
@@ -139,7 +139,7 @@ def _run_reduction(window, *, method_index: int, dimensions: int, label: str) ->
         page.mds_max_iter.setValue(120)
         page.mds_n_init.setValue(1)
 
-    page.start_analysis()
+    page.run_button.click()
     _wait(lambda: not page.busy, timeout=180, name=label)
     if page.current_result is None:
         raise RuntimeError(f"{label}没有产生结果。")
@@ -159,7 +159,7 @@ def _run_cluster(window, *, method_index: int, label: str) -> None:
         # 示例数据在标准化空间内使用较宽 eps，避免自检只得到全噪声。
         page.eps.setValue(1.5)
         page.min_samples.setValue(4)
-    page.start_analysis()
+    page.run_button.click()
     _wait(lambda: not page.busy, timeout=120, name=label)
     if page.current_result is None:
         raise RuntimeError(f"{label}没有产生结果。")
@@ -180,15 +180,17 @@ def run_all_graphics_gui_self_check(window) -> dict:
 
     # 特征统计：热力图、直方图、箱线图、散点图。
     window.goto(2)
-    for label, action in [
-        ("heatmap", window.draw_heatmap),
-        ("histogram", lambda: window.plot_feature("hist")),
-        ("boxplot", lambda: window.plot_feature("box")),
-        ("scatter", lambda: window.plot_feature("scatter")),
+    for label, caption in [
+        ("heatmap", "相关热力图"),
+        ("histogram", "变量直方图"),
+        ("boxplot", "多变量箱线图"),
+        ("scatter", "双变量散点图"),
     ]:
-        action()
+        window.feature_action_buttons[caption].click()
+        _events()
         window.statistics_canvas.draw()
         _events()
+        _grab(window, f"feature plot {label}")
 
     # PCA 自检使用 3 轮；完整 20 轮由专用 --pca-gui-self-check 执行。
     pca_result = run_pca_gui_self_check(window, cycles=3)
@@ -229,7 +231,7 @@ def run_all_graphics_gui_self_check(window) -> dict:
 
     evaluation.k_min.setValue(2)
     evaluation.k_max.setValue(6)
-    evaluation.start_search()
+    evaluation.search_button.click()
     _wait(lambda: not evaluation.busy, timeout=120, name="K search")
     if window.session.k_search_result is None:
         raise RuntimeError("K 值扫描没有产生结果。")

@@ -103,6 +103,33 @@ class PlotCanvas(FigureCanvasQTAgg):
                 pass
             return False
 
+    def safe_figure_update(self, title, callback, *, force_draw=True):
+        """保护需要自行创建多子图的 Figure 更新过程。"""
+        self._last_plot_title = str(title)
+        try:
+            self.figure.clear()
+            self.figure.subplots_adjust(left=.10, right=.96, bottom=.14, top=.88, wspace=.28)
+            callback(self.figure)
+            if force_draw:
+                self.draw()
+            elif self.isVisible():
+                self.draw_idle()
+            return True
+        except Exception as exc:
+            log_path = log_plot_exception(self._last_plot_title, exc)
+            if os.environ.get("HIGHDIM_SELF_CHECK") == "1":
+                raise
+            try:
+                QMessageBox.critical(
+                    self.window(),
+                    "图形绘制失败",
+                    f"{self._last_plot_title}绘制失败：\n{exc}\n\n"
+                    f"错误日志：{log_path}",
+                )
+            except Exception:
+                pass
+            return False
+
     def draw(self, *args, **kwargs):
         """捕获普通 Python 绘制异常；native fatal crash 由 faulthandler 记录。"""
         try:

@@ -23,6 +23,23 @@ QFrame#dataLensRail {
     background: #f0edf6;
     border-left: 1px solid #dfd8ea;
 }
+
+QScrollArea#lensScroll,
+QScrollArea#lensScroll > QWidget > QWidget,
+QWidget#lensContent {
+    background: #f0edf6;
+    border: none;
+}
+QScrollArea#lensScroll QScrollBar:vertical {
+    width: 9px;
+    background: transparent;
+    margin: 2px;
+}
+QScrollArea#lensScroll QScrollBar::handle:vertical {
+    background: #c8bfd8;
+    border-radius: 4px;
+    min-height: 30px;
+}
 QLabel#lensEyebrow {
     color: #74629f;
     font-size: 13px;

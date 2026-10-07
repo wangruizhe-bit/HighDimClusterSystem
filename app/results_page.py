@@ -49,10 +49,7 @@ class ResultsPage(QWidget):
 
         export_group = QGroupBox("表格与离线报告导出")
         export_layout = QVBoxLayout(export_group)
-        export_layout.addWidget(QLabel(
-            "CSV 只导出当前选择的一张表；Excel 导出本数据版本的全部真实结果表，"
-            "每张表占用一个工作表；HTML 报告提供关键数据和表格预览。"
-        ))
+        export_layout.addWidget(QLabel("CSV 导出所选表；Excel 导出全部结果；HTML 生成离线报告。"))
         buttons = QGridLayout()
         self.export_csv_button = QPushButton("导出所选表 CSV")
         self.export_xlsx_button = QPushButton("导出全部结果 Excel")
@@ -77,10 +74,7 @@ class ResultsPage(QWidget):
         self.export_figure_button.clicked.connect(self.save_figure)
         bar.addWidget(self.export_figure_button)
         figure_layout.addLayout(bar)
-        figure_layout.addWidget(QLabel(
-            "仅列出已经计算并绘制的图形；建议 PNG 用于说明书截图，"
-            "SVG 用于矢量图。保存不会修改原分析结果。"
-        ))
+        figure_layout.addWidget(QLabel("保存已经生成的图表，支持 PNG 和 SVG。"))
         root.addWidget(figures)
 
         controls = QHBoxLayout()
@@ -89,7 +83,7 @@ class ResultsPage(QWidget):
         controls.addWidget(self.clear_button)
         controls.addStretch()
         root.addLayout(controls)
-        self.notice = QLabel("导出操作全部在本机进行，不上传原始数据和计算结果。")
+        self.notice = QLabel("文件保存在本机，不上传数据。")
         self.notice.setWordWrap(True)
         root.addWidget(self.notice)
 

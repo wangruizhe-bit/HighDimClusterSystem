@@ -73,8 +73,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("高维数据降维与聚类分析系统 V1.0")
-        self.resize(1480, 920)
-        self.setMinimumSize(1080, 720)
+        self.resize(1600, 940)
+        self.setMinimumSize(1180, 760)
         self.session = Session(self)
         self.views = []
         self.feature_figure_ready = False
@@ -124,8 +124,8 @@ class MainWindow(QMainWindow):
             page = QWidget()
             page.setObjectName("studioPage")
             lay = QVBoxLayout(page)
-            lay.setContentsMargins(30, 24, 30, 30)
-            lay.setSpacing(16)
+            lay.setContentsMargins(32, 26, 32, 34)
+            lay.setSpacing(18)
             lay.addWidget(PageBanner(index, name))
             maker(lay)
             lay.addStretch(1)
@@ -143,7 +143,7 @@ class MainWindow(QMainWindow):
         self.mode_strip.select(number)
         self.data_lens.update_mode(number, PAGES[number])
         self.statusBar().showMessage(
-            f"DATA STUDIO  ·  {number + 1:02d}  ·  {PAGES[number]}", 4000
+            f"当前位置：{number + 1:02d}  ·  {PAGES[number]}", 4000
         )
 
     def _result_count(self):
@@ -182,12 +182,10 @@ class MainWindow(QMainWindow):
         hero_layout.setSpacing(24)
 
         copy = QVBoxLayout()
-        copy.setSpacing(9)
-        copy.addWidget(label("DATA DISCOVERY / DIMENSION REDUCTION / CLUSTERING", "heroEyebrow"))
-        copy.addWidget(label("从高维数据中发现结构", "heroTitle"))
+        copy.setSpacing(10)
+        copy.addWidget(label("高维数据降维与聚类分析", "heroTitle"))
         copy.addWidget(label(
-            "以真实数据为起点，完成清洗、统计探索、PCA、多方法降维、聚类与模型评价，"
-            "在统一工作区中追踪数据状态、分析过程与可导出结果。",
+            "导入数据后，可完成数据预处理、特征分析、降维、聚类及模型评价。",
             "heroSubtitle"
         ))
         hero_actions = QHBoxLayout()
@@ -204,7 +202,7 @@ class MainWindow(QMainWindow):
         ctx = QVBoxLayout(context)
         ctx.setContentsMargins(18, 16, 18, 16)
         ctx.setSpacing(6)
-        ctx.addWidget(label("WORKSPACE STATUS", "contextEyebrow"))
+        ctx.addWidget(label("工作区状态", "contextEyebrow"))
         self.home_dataset_name = label("尚未导入数据", "contextTitle")
         ctx.addWidget(self.home_dataset_name)
         self.home_dataset_hint = label("导入 CSV 或 Excel 后开始分析", "contextHint")
@@ -216,10 +214,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(hero)
 
         self.metric_tiles = {
-            "rows": MetricTile("样本数量", "0", "当前工作数据", "violet"),
-            "numeric": MetricTile("数值变量", "0", "可参与降维与聚类", "amber"),
-            "missing": MetricTile("缺失单元格", "0", "建议在建模前处理", "rose"),
-            "results": MetricTile("分析结果", "0", "当前数据版本结果快照", "mint"),
+            "rows": MetricTile("样本数量", "0", "当前数据", "violet"),
+            "numeric": MetricTile("数值变量", "0", "可分析变量", "amber"),
+            "missing": MetricTile("缺失单元格", "0", "待处理数据", "rose"),
+            "results": MetricTile("分析结果", "0", "已生成结果", "mint"),
         }
         metrics = MetricGrid()
         metrics.add_tiles(list(self.metric_tiles.values()))
@@ -234,10 +232,7 @@ class MainWindow(QMainWindow):
         pipeline_layout.setContentsMargins(20, 18, 20, 18)
         pipeline_layout.setSpacing(10)
         pipeline_layout.addWidget(label("分析路径", "panelTitle"))
-        pipeline_layout.addWidget(label(
-            "不是固定向导，可按研究任务跳转；下列四步覆盖最常见的数据分析流程。",
-            "panelHint"
-        ))
+        pipeline_layout.addWidget(label("常用分析流程", "panelHint"))
         steps = [
             (1, "准备数据", "导入 · 清洗 · 缺失值 · 标准化", 1),
             (2, "理解结构", "描述统计 · 相关性 · PCA · 嵌入", 2),
@@ -257,14 +252,14 @@ class MainWindow(QMainWindow):
         cap = QVBoxLayout(capability)
         cap.setContentsMargins(20, 18, 20, 18)
         cap.setSpacing(10)
-        cap.addWidget(label("分析能力矩阵", "panelTitle"))
-        cap.addWidget(label("已完成并接入真实计算的模块", "panelHint"))
+        cap.addWidget(label("分析能力", "panelTitle"))
+        cap.addWidget(label("当前可用方法", "panelHint"))
         capabilities = [
-            ("PCA", "特征值 / 载荷 / 得分 / 2D-3D"),
-            ("FA · MDS · t-SNE", "解释型降维与非线性嵌入"),
-            ("K-means · HC · DBSCAN", "三类互补聚类方法"),
-            ("Silhouette · CH · DB", "聚类质量与 K 值辅助判断"),
-            ("CSV · Excel · HTML", "表格、报告与图像本地导出"),
+            ("PCA", "特征值、载荷、得分和二维/三维图"),
+            ("FA · MDS · t-SNE", "多方法降维与嵌入"),
+            ("K-means · 层次聚类 · DBSCAN", "三类聚类方法"),
+            ("Silhouette · CH · DB", "聚类质量与 K 值评价"),
+            ("CSV · Excel · HTML", "结果表、报告和图像导出"),
         ]
         for name, hint in capabilities:
             line = QFrame()
@@ -291,10 +286,10 @@ class MainWindow(QMainWindow):
             )
             result_count = self._result_count()
             self.home_result_count.setText(f"{result_count} 个分析结果")
-            self.metric_tiles["rows"].set_value(summary["rows"], "当前工作数据")
-            self.metric_tiles["numeric"].set_value(summary["numeric"], "可参与降维与聚类")
-            self.metric_tiles["missing"].set_value(summary["missing"], "建议在建模前处理")
-            self.metric_tiles["results"].set_value(result_count, "当前数据版本结果快照")
+            self.metric_tiles["rows"].set_value(summary["rows"], "当前数据")
+            self.metric_tiles["numeric"].set_value(summary["numeric"], "可分析变量")
+            self.metric_tiles["missing"].set_value(summary["missing"], "待处理数据")
+            self.metric_tiles["results"].set_value(result_count, "已生成结果")
         self.refreshers.append(update)
         self.session.results_changed.connect(update)
         self.session.results_changed.connect(self._refresh_data_lens)

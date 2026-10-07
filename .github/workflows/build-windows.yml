@@ -25,7 +25,6 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     env:
-      QT_QPA_PLATFORM: offscreen
       QT_API: pyside6
       MPLBACKEND: QtAgg
     steps:
@@ -44,16 +43,28 @@ jobs:
       - name: Verify Python UI initialization
         run: python main.py --self-check
       - name: Stress PCA QtAgg tabs in source build
+        env:
+          QT_QPA_PLATFORM: windows
         run: python -m tools.run_with_logs python main.py --pca-gui-self-check
       - name: Scan all PlotCanvas paths in source build
+        env:
+          QT_QPA_PLATFORM: windows
         run: python -m tools.run_with_logs python main.py --graphics-gui-self-check
       - name: Capture 1920x1080 interface at Windows 100%
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: python -m tools.capture_screenshots --profile 1080_100
       - name: Capture 1920x1080 interface at Windows 125%
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: python -m tools.capture_screenshots --profile 1080_125
       - name: Capture default 1600x940 interface
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: python -m tools.capture_screenshots --profile default
       - name: Capture minimum 1180x760 interface
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: python -m tools.capture_screenshots --profile minimum
       - name: Build standalone Windows GUI app with QtAgg and mplot3d
         shell: pwsh
@@ -68,18 +79,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Windows debug executable build failed" }
           Copy-Item "data\demo_high_dimensional.csv" "dist-debug\HighDimClusterSystem-Debug\demo_high_dimensional.csv" -Force
       - name: Test packaged GUI executable startup
+        env:
+          QT_QPA_PLATFORM: windows
         shell: pwsh
         run: |
           python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--self-check'], timeout=180)"
       - name: Stress packaged GUI executable PCA tabs
+        env:
+          QT_QPA_PLATFORM: windows
         shell: pwsh
         run: |
           python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--pca-gui-self-check'], timeout=420)"
       - name: Scan all packaged GUI plotting paths
+        env:
+          QT_QPA_PLATFORM: windows
         shell: pwsh
         run: |
           python -c "import subprocess; subprocess.check_call([r'dist\HighDimClusterSystem\HighDimClusterSystem.exe', '--graphics-gui-self-check'], timeout=720)"
       - name: Verify console diagnostic executable
+        env:
+          QT_QPA_PLATFORM: windows
         shell: pwsh
         run: |
           python -c "import subprocess; subprocess.check_call([r'dist-debug\HighDimClusterSystem-Debug\HighDimClusterSystem-Debug.exe', '--pca-gui-self-check'], timeout=420)"
@@ -109,6 +128,8 @@ jobs:
       - name: Compare downloaded artifact and start its EXE
         run: python -m tools.verify_release --original dist/HighDimClusterSystem --downloaded artifact-check
       - name: Re-run PCA stress on downloaded release artifact
+        env:
+          QT_QPA_PLATFORM: windows
         shell: pwsh
         run: |
           python -c "import subprocess; subprocess.check_call([r'artifact-check\HighDimClusterSystem.exe', '--pca-gui-self-check'], timeout=420)"

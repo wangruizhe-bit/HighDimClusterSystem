@@ -53,6 +53,8 @@ def test_pca_all_tabs_real_qt_draw(tmp_path):
         if canvas is not None:
             canvas.draw()
         QApplication.processEvents()
+        pix = window.grab()
+        assert not pix.isNull()
 
     # 模拟用户从表格回到三维，再回二维，再回三维。
     for index in (3, page.SCATTER_3D_TAB, page.SCATTER_2D_TAB, page.SCATTER_3D_TAB):
@@ -62,6 +64,8 @@ def test_pca_all_tabs_real_qt_draw(tmp_path):
         if canvas is not None:
             canvas.draw()
         QApplication.processEvents()
+        pix = window.grab()
+        assert not pix.isNull()
 
     assert page.scatter3d_canvas.axes.name == "3d"
     window.close()

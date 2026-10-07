@@ -9,7 +9,7 @@ from app.styles import STYLE
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("高维数据降维与聚类分析系统 V1.0")
-    app.setFont(QFont("Microsoft YaHei", 10))
+    app.setFont(QFont("Microsoft YaHei UI", 11))
     app.setStyleSheet(STYLE)
     win = MainWindow()
     if "--self-check" in sys.argv:

@@ -51,3 +51,19 @@ def test_all_application_plot_widgets_use_static_agg():
     assert all(isinstance(canvas, StaticPlotCanvas) for canvas in canvases)
     window.close()
     app.processEvents()
+
+
+def test_hidden_static_canvas_prerenders_image_cache():
+    app = QApplication.instance() or QApplication([])
+    canvas = StaticPlotCanvas(three_d=True)
+    assert not canvas.isVisible()
+
+    def build(ax):
+        ax.scatter([0, 1], [0, 1], [0, 1])
+        ax.set_title("hidden 3D")
+
+    assert canvas.safe_update("hidden 3D", build, three_d=True, force_draw=False)
+    assert canvas._image is not None
+    assert not canvas._image.isNull()
+    canvas.close()
+    app.processEvents()

@@ -5,7 +5,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
 
 from app.main_window import MainWindow
-from app.plot_canvas import StaticPlotCanvas
+from app.plot_canvas import PlotCanvas, StaticPlotCanvas
 
 
 def test_pca_plot_tabs_use_static_agg_widgets():
@@ -26,5 +26,28 @@ def test_all_three_dimensional_views_use_static_agg_widgets():
     assert isinstance(window.pca_page.scatter3d_canvas, StaticPlotCanvas)
     assert isinstance(window.dimension_page.canvas3d, StaticPlotCanvas)
     assert isinstance(window.cluster_page.scatter3d, StaticPlotCanvas)
+    window.close()
+    app.processEvents()
+
+
+def test_all_application_plot_widgets_use_static_agg():
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow()
+    assert PlotCanvas is StaticPlotCanvas
+    canvases = [
+        window.statistics_canvas,
+        window.pca_page.variance_canvas,
+        window.pca_page.scatter2d_canvas,
+        window.pca_page.scatter3d_canvas,
+        window.dimension_page.canvas2d,
+        window.dimension_page.canvas3d,
+        window.dimension_page.comparison_canvas,
+        window.cluster_page.scatter2d,
+        window.cluster_page.scatter3d,
+        window.cluster_page.tree_canvas,
+        window.evaluation_page.score_canvas,
+        window.evaluation_page.k_canvas,
+    ]
+    assert all(isinstance(canvas, StaticPlotCanvas) for canvas in canvases)
     window.close()
     app.processEvents()

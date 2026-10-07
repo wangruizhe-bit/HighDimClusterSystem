@@ -61,6 +61,17 @@ def set_page_provider(provider: Callable[[], str] | None) -> None:
     _PAGE_PROVIDER = provider
 
 
+def record_fatal_context(reason: str = "运行上下文") -> None:
+    """向 fatal.log 追加最新页面上下文，便于 native crash 前后定位。"""
+    if _FATAL_STREAM is None:
+        return
+    try:
+        _FATAL_STREAM.write(_header(reason))
+        _FATAL_STREAM.flush()
+    except Exception:
+        pass
+
+
 def append_exception(kind: str, exc_type=None, exc=None, tb=None) -> Path:
     path = log_directory() / "crash.log"
     if exc_type is None and exc is not None:

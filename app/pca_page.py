@@ -1,23 +1,39 @@
-"""PCA 专业分析页：变量与模式设置、结果表、谱图、二维/三维得分图。"""
-from PySide6.QtCore import Qt
+"""PCA 分析页：参数设置、结果表和惰性二维/三维可视化。"""
+from __future__ import annotations
+
+import os
+
 from PySide6.QtWidgets import (
-    QAbstractItemView, QCheckBox, QComboBox, QDoubleSpinBox, QFrame,
-    QGridLayout, QGroupBox, QHBoxLayout, QLabel, QListWidget,
+    QAbstractItemView, QCheckBox, QComboBox, QDoubleSpinBox,
+    QGridLayout, QGroupBox, QLabel, QListWidget,
     QMessageBox, QPushButton, QSpinBox, QTabWidget, QTableView,
     QVBoxLayout, QWidget,
 )
+
+from app.diagnostics import log_plot_exception
 from app.plot_canvas import PlotCanvas
 from app.table_model import FrameTableModel
 from core.pca import fit_pca
 
 
 class PCAPage(QWidget):
-    """显示完整 PCA 输出，数据变化时清理当前计算结果。"""
+    """显示完整 PCA 输出；图形仅在用户进入相应 Tab 时首次绘制。"""
+
+    TABLE_TAB_COUNT = 4
+    VARIANCE_TAB = 4
+    SCATTER_2D_TAB = 5
+    SCATTER_3D_TAB = 6
 
     def __init__(self, session, parent=None):
         super().__init__(parent)
         self.session = session
         self.result = None
+        self._plot_dirty = {
+            self.VARIANCE_TAB: True,
+            self.SCATTER_2D_TAB: True,
+            self.SCATTER_3D_TAB: True,
+        }
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(16)
@@ -95,7 +111,9 @@ class PCAPage(QWidget):
         ]:
             canvas.setMinimumHeight(400)
             self.tabs.addTab(canvas, title)
+        self.tabs.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self.tabs)
+
         self.notes = QLabel("载荷表示变量与主成分得分的相关性；主成分系数为特征向量。")
         self.notes.setWordWrap(True)
         root.addWidget(self.notes)
@@ -109,9 +127,14 @@ class PCAPage(QWidget):
         self.count.setEnabled(current == "manual")
         self.threshold.setEnabled(current == "threshold")
 
+    def _mark_plots_dirty(self):
+        for key in self._plot_dirty:
+            self._plot_dirty[key] = True
+
     def on_data_changed(self):
         self.result = None
         self.session.latest_pca = None
+        self._mark_plots_dirty()
         self.variables.clear()
         numeric = self.session.data.get_numeric_columns()
         self.variables.addItems([str(name) for name in numeric])
@@ -122,11 +145,21 @@ class PCAPage(QWidget):
             self.count.setValue(max(1, upper))
         for model in self.tables.values():
             model.set_frame(None)
-        self.variance_canvas.clear_message("执行 PCA 后显示贡献率与累计贡献率")
-        self.scatter2d_canvas.clear_message("需要至少 2 个已保留主成分")
-        self.scatter3d_canvas.clear_message("需要至少 3 个已保留主成分")
-        self.summary.setText("已载入数值变量，可以执行分析。" if numeric else
-                             "尚无可分析的数值变量，请先导入数据。")
+
+        # 隐藏 Canvas 只更新 Figure 状态，不主动调度 Qt 绘制。
+        self.variance_canvas.clear_message(
+            "执行 PCA 后显示贡献率与累计贡献率", request_draw=False
+        )
+        self.scatter2d_canvas.clear_message(
+            "需要至少 2 个已保留主成分", request_draw=False
+        )
+        self.scatter3d_canvas.clear_message(
+            "需要至少 3 个已保留主成分", request_draw=False
+        )
+        self.summary.setText(
+            "已载入数值变量，可以执行分析。" if numeric
+            else "尚无可分析的数值变量，请先导入数据。"
+        )
 
     def run_analysis(self):
         try:
@@ -142,11 +175,19 @@ class PCAPage(QWidget):
         except (ValueError, TypeError) as exc:
             QMessageBox.warning(self, "PCA 参数或数据错误", str(exc))
             return
-        except Exception:
-            QMessageBox.warning(self, "PCA 分析失败", "计算失败，请检查数据内容和参数设置。")
+        except Exception as exc:
+            log_path = log_plot_exception("PCA 计算", exc)
+            if os.environ.get("HIGHDIM_SELF_CHECK") == "1":
+                raise
+            QMessageBox.critical(
+                self, "PCA 分析失败",
+                f"计算过程中发生异常：\n{exc}\n\n错误日志：{log_path}",
+            )
             return
+
         self.result = result
         self.session.latest_pca = result
+        self._mark_plots_dirty()
         self.summary.setText(
             f"本次分析：{result.sample_count} 个样本，{len(result.columns)} 个变量；"
             f"保留 {result.chosen_components} / {result.total_components} 个主成分；"
@@ -155,62 +196,118 @@ class PCAPage(QWidget):
         )
         for attr, model in self.tables.items():
             model.set_frame(getattr(result, attr))
-        self.draw_variance(result)
-        self.draw_scores2d(result)
-        self.draw_scores3d(result)
+
+        # PCA 计算结束只更新数据；图形在首次进入对应 Tab 时绘制。
         self.tabs.setCurrentIndex(0)
         self.session.results_changed.emit()
 
+    def _safe_draw(self, title, callback):
+        try:
+            return bool(callback())
+        except Exception as exc:
+            log_path = log_plot_exception(title, exc)
+            if os.environ.get("HIGHDIM_SELF_CHECK") == "1":
+                raise
+            QMessageBox.critical(
+                self,
+                "图形绘制失败",
+                f"{title}绘制失败：\n{exc}\n\n错误日志：{log_path}",
+            )
+            return False
+
+    def _on_tab_changed(self, index):
+        if self.result is None or index not in self._plot_dirty:
+            return
+        if not self._plot_dirty[index]:
+            return
+        actions = {
+            self.VARIANCE_TAB: ("PCA 方差贡献率图", self.draw_variance),
+            self.SCATTER_2D_TAB: ("PCA 二维得分图", self.draw_scores2d),
+            self.SCATTER_3D_TAB: ("PCA 三维得分图", self.draw_scores3d),
+        }
+        title, callback = actions[index]
+        if self._safe_draw(title, lambda: callback(self.result)):
+            self._plot_dirty[index] = False
+
     def draw_variance(self, result):
         canvas = self.variance_canvas
-        axes = canvas.new_axes()
         frame = result.eigen_table
         xs = list(range(1, result.total_components + 1))
         contribution = frame["方差贡献率(%)"].to_numpy()
         cumulative = frame["累计贡献率(%)"].to_numpy()
-        axes.bar(xs, contribution, alpha=.85, label="Individual")
-        axes.set_xlabel("主成分")
-        axes.set_ylabel("方差贡献率（%）")
-        axes.set_xticks(xs)
-        axes.set_ylim(bottom=0)
-        right = axes.twinx()
-        right.plot(xs, cumulative, "o-", linewidth=1.6, label="Cumulative")
-        right.axhline(85, color="#9aaec3", linestyle="--", alpha=.8)
-        right.axvline(result.chosen_components, color="#577fa3",
-                      linestyle=":", alpha=.75)
-        right.set_ylabel("累计贡献率（%）")
-        right.set_ylim(0, 105)
-        axes.set_title("PCA 方差贡献率与累计贡献率")
-        canvas.draw_idle()
+
+        def build(axes):
+            axes.bar(xs, contribution, alpha=.85, label="Individual")
+            axes.set_xlabel("主成分")
+            axes.set_ylabel("方差贡献率（%）")
+            axes.set_xticks(xs)
+            axes.set_ylim(bottom=0)
+            right = axes.twinx()
+            right.plot(xs, cumulative, "o-", linewidth=1.6, label="Cumulative")
+            right.axhline(85, color="#9aaec3", linestyle="--", alpha=.8)
+            right.axvline(
+                result.chosen_components, color="#577fa3",
+                linestyle=":", alpha=.75
+            )
+            right.set_ylabel("累计贡献率（%）")
+            right.set_ylim(0, 105)
+            axes.set_title("PCA 方差贡献率与累计贡献率")
+
+        return canvas.safe_update("PCA 方差贡献率图", build, force_draw=True)
 
     def draw_scores2d(self, result):
         if result.chosen_components < 2:
-            self.scatter2d_canvas.clear_message("只保留了一个主成分；请将 k 设为至少 2")
-            return
-        canvas = self.scatter2d_canvas
-        ax = canvas.new_axes()
-        x = result.score_table["PC1"]
-        y = result.score_table["PC2"]
-        ax.scatter(x, y, s=27, alpha=.75, edgecolor="white", linewidth=.4)
-        ax.axhline(0, color="#bdc9d7", lw=.8)
-        ax.axvline(0, color="#bdc9d7", lw=.8)
-        ax.set_xlabel(f"PC1 ({result.eigen_table['方差贡献率(%)'].iat[0]:.1f}%)")
-        ax.set_ylabel(f"PC2 ({result.eigen_table['方差贡献率(%)'].iat[1]:.1f}%)")
-        ax.set_title("PCA 二维得分图")
-        ax.grid(alpha=.15)
-        canvas.draw_idle()
+            self.scatter2d_canvas.clear_message(
+                "只保留了一个主成分；请将 k 设为至少 2",
+                request_draw=self.scatter2d_canvas.isVisible(),
+            )
+            if self.scatter2d_canvas.isVisible():
+                self.scatter2d_canvas.draw()
+            return True
+
+        score = result.score_table
+
+        def build(ax):
+            x = score["PC1"]
+            y = score["PC2"]
+            ax.scatter(x, y, s=27, alpha=.75, edgecolor="white", linewidth=.4)
+            ax.axhline(0, color="#bdc9d7", lw=.8)
+            ax.axvline(0, color="#bdc9d7", lw=.8)
+            ax.set_xlabel(
+                f"PC1 ({result.eigen_table['方差贡献率(%)'].iat[0]:.1f}%)"
+            )
+            ax.set_ylabel(
+                f"PC2 ({result.eigen_table['方差贡献率(%)'].iat[1]:.1f}%)"
+            )
+            ax.set_title("PCA 二维得分图")
+            ax.grid(alpha=.15)
+
+        return self.scatter2d_canvas.safe_update(
+            "PCA 二维得分图", build, force_draw=True
+        )
 
     def draw_scores3d(self, result):
         if result.chosen_components < 3:
-            self.scatter3d_canvas.clear_message("需要至少三个保留主成分；请将 k 设为至少 3")
-            return
-        canvas = self.scatter3d_canvas
-        ax = canvas.new_axes(three_d=True)
+            self.scatter3d_canvas.clear_message(
+                "需要至少三个保留主成分；请将 k 设为至少 3",
+                request_draw=self.scatter3d_canvas.isVisible(),
+            )
+            if self.scatter3d_canvas.isVisible():
+                self.scatter3d_canvas.draw()
+            return True
+
         score = result.score_table
-        ax.scatter(score["PC1"], score["PC2"], score["PC3"],
-                   s=24, alpha=.77, depthshade=True)
-        ax.set_xlabel("PC1")
-        ax.set_ylabel("PC2")
-        ax.set_zlabel("PC3")
-        ax.set_title("PCA 三维得分图")
-        canvas.draw_idle()
+
+        def build(ax):
+            ax.scatter(
+                score["PC1"], score["PC2"], score["PC3"],
+                s=24, alpha=.77, depthshade=True
+            )
+            ax.set_xlabel("PC1")
+            ax.set_ylabel("PC2")
+            ax.set_zlabel("PC3")
+            ax.set_title("PCA 三维得分图")
+
+        return self.scatter3d_canvas.safe_update(
+            "PCA 三维得分图", build, three_d=True, force_draw=True
+        )

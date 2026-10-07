@@ -10,7 +10,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QFont, QImage, QPainter
+from PySide6.QtGui import QFont, QImage
 from app.main_window import MainWindow
 from app.styles import STYLE
 
@@ -41,11 +41,8 @@ def snapshot(app, window, section, name, destination):
     # 避免 QPixmap 依赖原生窗口缓冲区导致 headless 环境退出。
     image = QImage(window.size(), QImage.Format.Format_ARGB32_Premultiplied)
     image.fill(Qt.GlobalColor.white)
-    painter = QPainter(image)
-    try:
-        window.render(painter)
-    finally:
-        painter.end()
+    # QWidget.render() 可直接接收 QPaintDevice；QImage 不依赖原生屏幕。
+    window.render(image)
     result = image.save(str(target), "PNG")
     if not result or target.stat().st_size < 10000:
         raise RuntimeError(f"截图无效或文件过小：{target}")

@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
-from app.diagnostics import log_plot_exception
+from app.diagnostics import log_plot_exception, record_fatal_context
 from app.plot_canvas import StaticPlotCanvas
 from app.table_model import FrameTableModel
 from core.pca import fit_pca
@@ -221,6 +221,11 @@ class PCAPage(QWidget):
             return False
 
     def _on_tab_changed(self, index):
+        try:
+            tab_title = self.tabs.tabText(index)
+        except Exception:
+            tab_title = str(index)
+        record_fatal_context(f"PCA Tab 切换: {index} {tab_title}")
         if self.result is None or index not in self._plot_dirty:
             return
         if not self._plot_dirty[index]:

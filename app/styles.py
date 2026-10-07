@@ -251,6 +251,11 @@ QFrame#card {
     border: 1px solid #e7e3ed;
     border-radius: 12px;
 }
+QLabel#cardTitle {
+    color: #3f3858;
+    font-size: 14px;
+    font-weight: 850;
+}
 QGroupBox {
     background: #ffffff;
     border: 1px solid #e6e1ed;

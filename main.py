@@ -21,7 +21,7 @@ else:
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
-from app.diagnostics import install_crash_handlers, set_page_provider
+from app.diagnostics import install_crash_handlers, record_fatal_context, set_page_provider
 from app.main_window import MainWindow, PAGES
 from app.styles import STYLE
 
@@ -62,6 +62,10 @@ def main():
 
     window = MainWindow()
     set_page_provider(lambda: _page_name(window))
+    window.stack.currentChanged.connect(
+        lambda _: record_fatal_context("页面切换")
+    )
+    record_fatal_context("主窗口就绪")
 
     try:
         if "--self-check" in sys.argv:

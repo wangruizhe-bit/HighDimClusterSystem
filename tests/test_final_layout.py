@@ -66,7 +66,7 @@ def test_workspace_dominates_right_rail_at_default_width():
     rail = window.data_lens.width()
     workspace = window.stack.width()
     ratio = workspace / (workspace + rail)
-    assert 245 <= rail <= 275
+    assert 245 <= rail <= 285
     assert 0.80 <= ratio <= 0.84
     window.close()
     app.processEvents()

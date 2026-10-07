@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QSizePolicy, QStackedWidget, QTableView, QVBoxLayout, QWidget,
 )
 from core import preprocessing, statistics
+from app.diagnostics import record_fatal_context
 from app.plot_canvas import PlotCanvas
 from app.pca_page import PCAPage
 from app.dimension_page import ReductionPage
@@ -151,6 +152,7 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(number)
         self.mode_strip.select(number)
         self.data_lens.update_mode(number, PAGES[number])
+        record_fatal_context(f"页面切换: {number + 1:02d} {PAGES[number]}")
         self.statusBar().showMessage(
             f"当前位置：{number + 1:02d}  ·  {PAGES[number]}", 4000
         )

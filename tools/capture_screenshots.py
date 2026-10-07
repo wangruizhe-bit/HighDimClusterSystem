@@ -80,9 +80,12 @@ def validate_key_geometry(window, app):
         if widget.width() <= 20 or widget.height() <= 12:
             raise RuntimeError(f"关键文字控件尺寸异常：{widget.objectName()}")
 
-    # 品牌名称不得因字号放大自动换行。
-    if window.studio_header.brand_title.height() > window.studio_header.brand_title.fontMetrics().lineSpacing() * 1.6:
-        raise RuntimeError("软件名称发生换行或高度异常。")
+    # 品牌名称禁止换行，并且可用宽度必须容纳完整文字。
+    brand = window.studio_header.brand_title
+    if brand.wordWrap():
+        raise RuntimeError("软件名称不允许自动换行。")
+    if brand.fontMetrics().horizontalAdvance(brand.text()) > brand.width() - 4:
+        raise RuntimeError("软件名称可用宽度不足，存在横向裁切。")
 
     # 右侧栏关键块必须按顺序排列，不能出现用户截图中的互相覆盖。
     rail = window.data_lens

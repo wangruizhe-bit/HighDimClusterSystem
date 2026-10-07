@@ -80,6 +80,26 @@ def validate_key_geometry(window, app):
         if widget.width() <= 20 or widget.height() <= 12:
             raise RuntimeError(f"关键文字控件尺寸异常：{widget.objectName()}")
 
+    # 品牌名称不得因字号放大自动换行。
+    if window.studio_header.brand_title.height() > window.studio_header.brand_title.fontMetrics().lineSpacing() * 1.6:
+        raise RuntimeError("软件名称发生换行或高度异常。")
+
+    # 右侧栏关键块必须按顺序排列，不能出现用户截图中的互相覆盖。
+    rail = window.data_lens
+    ordered = [
+        rail.title_label, rail.dataset_card, rail.quality_title,
+        rail.rows[0], rail.numeric[0], rail.missing[0], rail.duplicates[0],
+        rail.records_title, rail.result_box, rail.position_title,
+        rail.mode_code, rail.mode_title,
+    ]
+    previous_bottom = -1
+    for widget in ordered:
+        top = widget.geometry().top()
+        bottom = widget.geometry().bottom()
+        if top <= previous_bottom:
+            raise RuntimeError(f"右侧数据栏控件重叠：{widget.objectName()}")
+        previous_bottom = bottom
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -104,7 +124,7 @@ def main():
     window.show()
     pump(app)
 
-    window.session.load(str(root / "data" / "sample_data.csv"))
+    window.load_demo_data()
     validate_key_geometry(window, app)
 
     # 视觉验收只检查布局和文字可读性，不在 headless 截图任务中执行

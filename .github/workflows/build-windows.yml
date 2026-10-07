@@ -66,17 +66,26 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: python -m tools.capture_screenshots --profile minimum
-      - name: Build standalone Windows GUI app with QtAgg and mplot3d
+      - name: Build standalone Windows GUI app with explicit QtAgg hook config
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onedir --windowed --name HighDimClusterSystem --collect-all sklearn --hidden-import matplotlib.backends.backend_qtagg --hidden-import mpl_toolkits.mplot3d --add-data "data;data" main.py
-          if ($LASTEXITCODE -ne 0) { throw "Windows GUI executable build failed" }
+          python -m PyInstaller --noconfirm --clean HighDimClusterSystem.spec *> pyinstaller-gui.log
+          $code = $LASTEXITCODE
+          Get-Content pyinstaller-gui.log
+          if ($code -ne 0) { throw "Windows GUI executable build failed" }
+          $log = Get-Content pyinstaller-gui.log -Raw
+          if ($log -notmatch "QtAgg") { throw "PyInstaller build log does not include QtAgg backend collection" }
+          if ($log -notmatch "backend_qtagg") { throw "PyInstaller did not process backend_qtagg" }
           Copy-Item "data\demo_high_dimensional.csv" "dist\HighDimClusterSystem\demo_high_dimensional.csv" -Force
       - name: Build console diagnostic executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onedir --console --name HighDimClusterSystem-Debug --distpath dist-debug --workpath build-debug --collect-all sklearn --hidden-import matplotlib.backends.backend_qtagg --hidden-import mpl_toolkits.mplot3d --add-data "data;data" main.py
-          if ($LASTEXITCODE -ne 0) { throw "Windows debug executable build failed" }
+          python -m PyInstaller --noconfirm --clean --distpath dist-debug --workpath build-debug HighDimClusterSystem-Debug.spec *> pyinstaller-debug.log
+          $code = $LASTEXITCODE
+          Get-Content pyinstaller-debug.log
+          if ($code -ne 0) { throw "Windows debug executable build failed" }
+          $log = Get-Content pyinstaller-debug.log -Raw
+          if ($log -notmatch "QtAgg") { throw "Debug PyInstaller build log does not include QtAgg backend collection" }
           Copy-Item "data\demo_high_dimensional.csv" "dist-debug\HighDimClusterSystem-Debug\demo_high_dimensional.csv" -Force
       - name: Test packaged GUI executable startup
         env:

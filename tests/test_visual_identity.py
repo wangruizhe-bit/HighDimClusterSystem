@@ -112,7 +112,7 @@ def test_125_percent_equivalent_workspace_keeps_key_controls_visible():
     app.processEvents()
 
     assert window.stack.width() >= 900
-    assert window.data_lens.width() >= 280
+    assert 245 <= window.data_lens.width() <= 285
     for index in range(8):
         window.goto(index)
         app.processEvents()

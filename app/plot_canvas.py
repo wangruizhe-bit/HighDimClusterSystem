@@ -1,19 +1,28 @@
-"""可复用 Matplotlib Qt 画布，支持二维/三维轴与稳定重复绘图。"""
+"""Matplotlib 绘图组件。
+
+二维图使用 QtAgg 交互画布；三维图使用 Agg 离屏渲染后转为 Qt 静态图像，
+避免 mplot3d 在 Windows Qt PaintEvent 中触发 native 崩溃。
+"""
 from __future__ import annotations
 
 import os
 
-from matplotlib import rcParams, font_manager
+from matplotlib import font_manager, rcParams
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  # PyInstaller 显式收集 3D toolkit
-from PySide6.QtWidgets import QMessageBox
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  # 冻结程序显式收集 3D toolkit
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import (
+    QLabel, QMessageBox, QSizePolicy, QVBoxLayout, QWidget,
+)
 
 from app.diagnostics import log_plot_exception
 
 
 def _choose_chinese_matplotlib_font():
-    """优先使用实际已安装的字体，避免中文标题/坐标标签显示为方块。"""
+    """优先使用实际已安装的中文字体。"""
     installed = {face.name for face in font_manager.fontManager.ttflist}
     candidates = (
         "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Noto Sans CJK JP",
@@ -33,20 +42,28 @@ def _choose_chinese_matplotlib_font():
 _choose_chinese_matplotlib_font()
 
 
+def _report_draw_error(owner, title, exc):
+    log_path = log_plot_exception(title, exc)
+    if os.environ.get("HIGHDIM_SELF_CHECK") == "1":
+        raise exc
+    try:
+        QMessageBox.critical(
+            owner.window(),
+            "图形绘制失败",
+            f"{title}绘制失败：\n{exc}\n\n错误日志：{log_path}",
+        )
+    except Exception:
+        pass
+    return False
+
+
 class PlotCanvas(FigureCanvasQTAgg):
-    """QtAgg FigureCanvas。
+    """二维 QtAgg FigureCanvas。"""
 
-    不使用 Figure(tight_layout=True)，避免隐藏/显示与 3D Axes 重建时触发
-    不稳定的自动布局路径。每次重建轴后使用固定边距。
-    """
-
-    def __init__(self, parent=None, three_d=False):
+    def __init__(self, parent=None):
         self.figure = Figure(figsize=(6, 4))
         self.figure.subplots_adjust(left=.12, right=.95, bottom=.14, top=.90)
-        self._three_d = bool(three_d)
-        self.axes = self.figure.add_subplot(
-            111, projection="3d" if self._three_d else None
-        )
+        self.axes = self.figure.add_subplot(111)
         super().__init__(self.figure)
         if parent is not None:
             self.setParent(parent)
@@ -54,30 +71,25 @@ class PlotCanvas(FigureCanvasQTAgg):
         self.clear_message("等待分析结果", request_draw=False)
 
     def new_axes(self, three_d=None):
-        if three_d is not None:
-            self._three_d = bool(three_d)
+        if three_d:
+            raise ValueError("二维 QtAgg 画布不能创建三维坐标轴。")
         self.figure.clear()
         self.figure.subplots_adjust(left=.12, right=.95, bottom=.14, top=.90)
-        self.axes = self.figure.add_subplot(
-            111, projection="3d" if self._three_d else None
-        )
+        self.axes = self.figure.add_subplot(111)
         self.axes.set_axis_on()
         return self.axes
 
     def clear_message(self, message, *, request_draw=True):
         ax = self.new_axes()
-        if self._three_d:
-            ax.text2D(.5, .5, message, ha="center", va="center",
-                      transform=ax.transAxes, color="#75899e")
-        else:
-            ax.text(.5, .5, message, ha="center", va="center",
-                    transform=ax.transAxes, color="#75899e")
+        ax.text(
+            .5, .5, message, ha="center", va="center",
+            transform=ax.transAxes, color="#75899e",
+        )
         ax.set_axis_off()
         if request_draw and self.isVisible():
             self.draw_idle()
 
     def safe_update(self, title, callback, *, three_d=None, force_draw=True):
-        """在 Python 层保护“重建轴 + 绘制 + Qt Canvas draw”完整过程。"""
         self._last_plot_title = str(title)
         try:
             axes = self.new_axes(three_d=three_d)
@@ -88,27 +100,15 @@ class PlotCanvas(FigureCanvasQTAgg):
                 self.draw_idle()
             return True
         except Exception as exc:
-            log_path = log_plot_exception(self._last_plot_title, exc)
-            # 自动化/EXE 自检中必须把错误抛给调用者，不能被模态框吞掉。
-            if os.environ.get("HIGHDIM_SELF_CHECK") == "1":
-                raise
-            try:
-                QMessageBox.critical(
-                    self.window(),
-                    "图形绘制失败",
-                    f"{self._last_plot_title}绘制失败：\n{exc}\n\n"
-                    f"错误日志：{log_path}",
-                )
-            except Exception:
-                pass
-            return False
+            return _report_draw_error(self, self._last_plot_title, exc)
 
     def safe_figure_update(self, title, callback, *, force_draw=True):
-        """保护需要自行创建多子图的 Figure 更新过程。"""
         self._last_plot_title = str(title)
         try:
             self.figure.clear()
-            self.figure.subplots_adjust(left=.10, right=.96, bottom=.14, top=.88, wspace=.28)
+            self.figure.subplots_adjust(
+                left=.10, right=.96, bottom=.14, top=.88, wspace=.28
+            )
             callback(self.figure)
             if force_draw:
                 self.draw()
@@ -116,35 +116,135 @@ class PlotCanvas(FigureCanvasQTAgg):
                 self.draw_idle()
             return True
         except Exception as exc:
-            log_path = log_plot_exception(self._last_plot_title, exc)
-            if os.environ.get("HIGHDIM_SELF_CHECK") == "1":
-                raise
-            try:
-                QMessageBox.critical(
-                    self.window(),
-                    "图形绘制失败",
-                    f"{self._last_plot_title}绘制失败：\n{exc}\n\n"
-                    f"错误日志：{log_path}",
-                )
-            except Exception:
-                pass
-            return False
+            return _report_draw_error(self, self._last_plot_title, exc)
 
     def draw(self, *args, **kwargs):
         """捕获普通 Python 绘制异常；native fatal crash 由 faulthandler 记录。"""
         try:
             return super().draw(*args, **kwargs)
         except Exception as exc:
-            log_path = log_plot_exception(self._last_plot_title, exc)
-            if os.environ.get("HIGHDIM_SELF_CHECK") == "1":
-                raise
-            try:
-                QMessageBox.critical(
-                    self.window(),
-                    "图形绘制失败",
-                    f"{self._last_plot_title}绘制失败：\n{exc}\n\n"
-                    f"错误日志：{log_path}",
-                )
-            except Exception:
-                pass
+            _report_draw_error(self, self._last_plot_title, exc)
             return None
+
+
+class StaticPlotCanvas(QWidget):
+    """Agg 离屏渲染画布。
+
+    专门用于三维科研图。Matplotlib 完成 mplot3d 渲染后，将 RGBA 缓冲区复制为
+    QImage/QPixmap 交给 QLabel 显示；Qt 不再直接 paint mplot3d Canvas。
+    """
+
+    def __init__(self, parent=None, *, three_d=True):
+        super().__init__(parent)
+        self._three_d = bool(three_d)
+        self.figure = Figure(figsize=(6, 4))
+        self.figure.subplots_adjust(left=.10, right=.96, bottom=.12, top=.90)
+        self._agg = FigureCanvasAgg(self.figure)
+        self.axes = self.figure.add_subplot(
+            111, projection="3d" if self._three_d else None
+        )
+        self._last_plot_title = "三维图形"
+        self._image = None
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self.image_label.setMinimumSize(100, 100)
+        layout.addWidget(self.image_label)
+        self.clear_message("等待分析结果", request_draw=False)
+
+    def new_axes(self, three_d=None):
+        if three_d is not None:
+            self._three_d = bool(three_d)
+        self.figure.clear()
+        self.figure.subplots_adjust(left=.10, right=.96, bottom=.12, top=.90)
+        self.axes = self.figure.add_subplot(
+            111, projection="3d" if self._three_d else None
+        )
+        self.axes.set_axis_on()
+        return self.axes
+
+    def _update_pixmap(self):
+        if self._image is None:
+            self.image_label.clear()
+            return
+        pixmap = QPixmap.fromImage(self._image)
+        target = self.image_label.size()
+        if target.width() > 10 and target.height() > 10:
+            pixmap = pixmap.scaled(
+                target,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        self.image_label.setPixmap(pixmap)
+
+    def draw(self, *args, **kwargs):
+        del args, kwargs
+        try:
+            self._agg.draw()
+            rgba = self._agg.buffer_rgba()
+            width, height = self._agg.get_width_height()
+            image = QImage(
+                rgba, width, height, width * 4,
+                QImage.Format.Format_RGBA8888,
+            )
+            # Matplotlib owns the renderer buffer; copy before it can be reused.
+            self._image = image.copy()
+            self._update_pixmap()
+            return None
+        except Exception as exc:
+            _report_draw_error(self, self._last_plot_title, exc)
+            return None
+
+    def draw_idle(self):
+        if self.isVisible():
+            self.draw()
+
+    def clear_message(self, message, *, request_draw=True):
+        ax = self.new_axes()
+        if self._three_d:
+            ax.text2D(
+                .5, .5, message, ha="center", va="center",
+                transform=ax.transAxes, color="#75899e",
+            )
+        else:
+            ax.text(
+                .5, .5, message, ha="center", va="center",
+                transform=ax.transAxes, color="#75899e",
+            )
+        ax.set_axis_off()
+        if request_draw:
+            self.draw()
+
+    def safe_update(self, title, callback, *, three_d=None, force_draw=True):
+        self._last_plot_title = str(title)
+        try:
+            axes = self.new_axes(three_d=three_d)
+            callback(axes)
+            if force_draw or self.isVisible():
+                self.draw()
+            return True
+        except Exception as exc:
+            return _report_draw_error(self, self._last_plot_title, exc)
+
+    def safe_figure_update(self, title, callback, *, force_draw=True):
+        self._last_plot_title = str(title)
+        try:
+            self.figure.clear()
+            self.figure.subplots_adjust(
+                left=.10, right=.96, bottom=.12, top=.90, wspace=.28
+            )
+            callback(self.figure)
+            if force_draw or self.isVisible():
+                self.draw()
+            return True
+        except Exception as exc:
+            return _report_draw_error(self, self._last_plot_title, exc)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_pixmap()

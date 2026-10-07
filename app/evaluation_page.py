@@ -167,17 +167,22 @@ class EvaluationPage(QWidget):
             self.score_plot_ready = False
             self.score_canvas.clear_message("无同条件、可计算轮廓系数的模型结果")
             return
-        ax = self.score_canvas.new_axes()
         titles = [f"#{i} {r.label}" for i, r in valid]
         scores = [r.metrics["silhouette"] for _, r in valid]
-        bars = ax.bar(range(len(valid)), scores)
-        ax.set_xticks(range(len(valid)), titles, rotation=20, ha="right")
-        ax.axhline(0, linewidth=.8, color="#94a3b8")
-        ax.set_ylabel("轮廓系数")
-        ax.set_title("同条件结果轮廓系数对比（DBSCAN 不含噪声）")
-        ax.grid(axis="y", alpha=.15)
-        self.score_canvas.draw_idle()
-        self.score_plot_ready = True
+
+        def build_score(ax):
+            ax.bar(range(len(valid)), scores)
+            ax.set_xticks(range(len(valid)), titles, rotation=20, ha="right")
+            ax.axhline(0, linewidth=.8, color="#94a3b8")
+            ax.set_ylabel("轮廓系数")
+            ax.set_title("同条件结果轮廓系数对比（DBSCAN 不含噪声）")
+            ax.grid(axis="y", alpha=.15)
+
+        self.score_plot_ready = self.score_canvas.safe_update(
+            "聚类评价轮廓系数对比",
+            build_score,
+            force_draw=self.score_canvas.isVisible(),
+        )
 
     def start_search(self):
         if self.busy:
@@ -234,23 +239,29 @@ class EvaluationPage(QWidget):
             self.worker = None
 
     def _plot_k(self, result):
-        fig = self.k_canvas.figure
-        fig.clear()
         data = result.scores
-        a = fig.add_subplot(1, 2, 1)
-        a.plot(data["K"], data["惯性(SSE)"], "o-")
-        a.set_xlabel("K")
-        a.set_ylabel("惯性 / SSE")
-        a.set_title("SSE 肘部曲线")
-        a.set_xticks(data["K"])
-        a.grid(alpha=.15)
-        b = fig.add_subplot(1, 2, 2)
-        b.plot(data["K"], data["轮廓系数"], "o-")
-        if result.suggested_k is not None:
-            b.axvline(result.suggested_k, linestyle="--", color="#879db4")
-        b.set_xlabel("K")
-        b.set_ylabel("轮廓系数")
-        b.set_title("不同 K 的轮廓系数")
-        b.set_xticks(data["K"])
-        b.grid(alpha=.15)
-        self.k_canvas.draw_idle()
+
+        def build_k(fig):
+            a = fig.add_subplot(1, 2, 1)
+            a.plot(data["K"], data["惯性(SSE)"], "o-")
+            a.set_xlabel("K")
+            a.set_ylabel("惯性 / SSE")
+            a.set_title("SSE 肘部曲线")
+            a.set_xticks(data["K"])
+            a.grid(alpha=.15)
+
+            b = fig.add_subplot(1, 2, 2)
+            b.plot(data["K"], data["轮廓系数"], "o-")
+            if result.suggested_k is not None:
+                b.axvline(result.suggested_k, linestyle="--", color="#879db4")
+            b.set_xlabel("K")
+            b.set_ylabel("轮廓系数")
+            b.set_title("不同 K 的轮廓系数")
+            b.set_xticks(data["K"])
+            b.grid(alpha=.15)
+
+        self.k_canvas.safe_figure_update(
+            "K 值辅助选择曲线",
+            build_k,
+            force_draw=self.k_canvas.isVisible(),
+        )

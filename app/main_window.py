@@ -82,6 +82,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("高维数据降维与聚类分析系统 V1.0")
         self.resize(1600, 940)
         self.setMinimumSize(1180, 760)
+        screen = self.screen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            self.resize(max(1180, min(1600, available.width() - 40)),
+                        max(760, min(940, available.height() - 48)))
         self.session = Session(self)
         self.views = []
         self.feature_figure_ready = False

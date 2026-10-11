@@ -12,7 +12,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  # 冻结程序显式收集 3D toolkit
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QLabel, QMessageBox, QSizePolicy, QVBoxLayout, QWidget,
@@ -151,10 +151,13 @@ class StaticPlotCanvas(QWidget):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored
         )
         self.image_label.setMinimumSize(100, 100)
         layout.addWidget(self.image_label)
+        self._resize_timer = QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.timeout.connect(self.draw)
         self.clear_message("等待分析结果", request_draw=False)
 
     def new_axes(self, three_d=None):
@@ -185,6 +188,12 @@ class StaticPlotCanvas(QWidget):
     def draw(self, *args, **kwargs):
         del args, kwargs
         try:
+            # Render at actual physical pixels, including Windows display scale.
+            # Ignored QLabel size hints prevent the pixmap inflating its own layout.
+            ratio = self.devicePixelRatioF()
+            width = max(100, self.image_label.width()) * ratio
+            height = max(100, self.image_label.height()) * ratio
+            self.figure.set_size_inches(width / self.figure.dpi, height / self.figure.dpi, forward=False)
             self._agg.draw()
             rgba = self._agg.buffer_rgba()
             width, height = self._agg.get_width_height()
@@ -249,6 +258,8 @@ class StaticPlotCanvas(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._update_pixmap()
+        if self._image is not None:
+            self._resize_timer.start(80)
 
 
 # 正式界面统一使用离屏 Agg 渲染。保留 PlotCanvas 名称，避免页面层代码改动。

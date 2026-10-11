@@ -29,6 +29,31 @@ def studio_label(text, name=None, wrap=True):
     return widget
 
 
+class ElidedLabel(QLabel):
+    """Display a pixel-measured name while retaining the full text in a tooltip."""
+
+    def __init__(self, text, name):
+        super().__init__()
+        self.setObjectName(name)
+        self._full_text = ""
+        self.setText(text)
+
+    def setText(self, text):
+        self._full_text = str(text)
+        self.setToolTip(self._full_text)
+        self._elide()
+
+    def _elide(self):
+        super().setText(self.fontMetrics().elidedText(
+            self._full_text, Qt.TextElideMode.ElideRight,
+            max(0, self.contentsRect().width()),
+        ))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._elide()
+
+
 class StudioHeader(QFrame):
     """固定顶部品牌区；右侧只显示当前数据上下文和两个高频操作。"""
 
@@ -63,11 +88,14 @@ class StudioHeader(QFrame):
         ctx.setSpacing(2)
         self.dataset_caption = studio_label("当前数据集", "datasetEyebrow", wrap=False)
         ctx.addWidget(self.dataset_caption)
-        self.dataset_text = studio_label("尚未导入数据", "datasetValue", wrap=False)
-        self.dataset_text.setFixedWidth(330)
+        self.dataset_text = ElidedLabel("尚未导入数据", "datasetValue")
+        self.dataset_text.setMinimumWidth(150)
+        self.dataset_text.setMaximumWidth(330)
+        self.dataset_text.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.dataset_text.setMinimumHeight(24)
         ctx.addWidget(self.dataset_text)
-        layout.addWidget(context)
+        self.dataset_context = context
+        layout.addWidget(context, 1)
 
         self.import_button = QPushButton("＋  导入数据")
         self.import_button.setObjectName("headerPrimary")
@@ -83,11 +111,18 @@ class StudioHeader(QFrame):
             self.dataset_text.setText("尚未导入数据")
             return
         name = summary.get("name") or "当前数据"
-        if len(name) > 24:
-            name = name[:21] + "…"
+        self.dataset_text.setToolTip(str(name))
         self.dataset_text.setText(
             f"{name}  ·  {summary.get('rows', 0)} × {summary.get('columns', 0)}"
         )
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Keep the full application title and actions readable at minimum width.
+        compact = self.width() < 1400
+        self.layout().setContentsMargins(18 if compact else 28, 14, 18 if compact else 28, 14)
+        self.layout().setSpacing(10 if compact else 18)
+        self.dataset_text.setMaximumWidth(180 if compact else 330)
 
 
 class ModeStrip(QFrame):
@@ -239,7 +274,7 @@ class DataLensRail(QFrame):
         card.setSpacing(4)
         self.dataset_caption = studio_label("当前数据集", "lensCardEyebrow", wrap=False)
         card.addWidget(self.dataset_caption)
-        self.dataset_name = studio_label("尚未导入", "lensDatasetName", wrap=False)
+        self.dataset_name = ElidedLabel("尚未导入", "lensDatasetName")
         self.dataset_name.setMinimumHeight(24)
         card.addWidget(self.dataset_name)
         self.dataset_shape = studio_label("等待数据", "lensDatasetShape", wrap=False)
@@ -302,8 +337,7 @@ class DataLensRail(QFrame):
         summary = summary or {}
         imported = summary.get("rows", 0) > 0
         name = summary.get("name") if imported else "尚未导入"
-        if name and len(name) > 22:
-            name = name[:19] + "…"
+        self.dataset_name.setToolTip(str(name or "当前数据"))
         self.dataset_name.setText(name or "当前数据")
         self.dataset_shape.setText(
             f"{summary.get('rows', 0)} 行 × {summary.get('columns', 0)} 列"

@@ -134,7 +134,7 @@ def _run_reduction(window, *, method_index: int, dimensions: int, label: str) ->
     page.dimension_combo.setCurrentIndex(1 if dimensions == 3 else 0)
     if page.method_combo.currentData() == "tsne":
         page.perplexity.setValue(15.0)
-        page.tsne_max_iter.setValue(250)
+        page.tsne_max_iter.setValue(300)
     if page.method_combo.currentData() == "mds":
         page.mds_max_iter.setValue(120)
         page.mds_n_init.setValue(1)

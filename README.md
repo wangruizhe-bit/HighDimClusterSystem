@@ -2,7 +2,10 @@
 
 High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
-> 当前进度：**五阶段全部完成。Windows/Linux 各 87 项自动化测试通过，Windows 独立 EXE 打包与下载后启动自检均成功。** 项目可在本地独立运行，不依赖在线服务。
+> 发布候选版本：程序保留全部本地分析功能，不依赖在线服务。本次 Linux 验证通过 116 项测试；当前代码的 Windows 11、125% DPI 和 EXE 验收待实机执行，历史工作流结果不代表当前提交已验收。
+
+本次修改、算法审查结果和验证边界见 [发布候选审查记录](docs/发布候选审查记录.md)。
+Windows 11 实机操作见 [Windows 11 发布验收](docs/Windows11发布验收.md)。
 
 ## Windows 发行包（DLL 缺失问题已修复）
 

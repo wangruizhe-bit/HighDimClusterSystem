@@ -124,7 +124,7 @@ class ReductionPage(QWidget):
         self.tsne_learning_rate.setValue(200)
         tsne_controls.addRow("手动学习率", self.tsne_learning_rate)
         self.tsne_max_iter = QSpinBox()
-        self.tsne_max_iter.setRange(250, 5000)
+        self.tsne_max_iter.setRange(300, 5000)
         self.tsne_max_iter.setValue(1000)
         tsne_controls.addRow("最大迭代次数", self.tsne_max_iter)
         self.algorithm_options.addWidget(self.tsne_form)

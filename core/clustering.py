@@ -118,7 +118,7 @@ def _validate_options(method, n, k, linkage, metric, max_iter, seed, eps, min_sa
             raise ValueError("DBSCAN min_samples 必须为 2 到样本数之间的整数。")
 
 
-def evaluate_labels(x, labels, *, seed=42):
+def evaluate_labels(x, labels, *, seed=42, metric="euclidean"):
     """对 DBSCAN 的非噪声样本单独评分；无效分割不产生虚假指标。"""
     labels = np.asarray(labels, dtype=int)
     valid = labels != -1
@@ -132,8 +132,8 @@ def evaluate_labels(x, labels, *, seed=42):
     # silhouette 是 O(n²) 距离计算；对过大的样本采取可复现抽样。
     size = min(len(y), 1200)
     if size == len(y):
-        scores["silhouette"] = float(silhouette_score(data, y))
-    else:
+        scores["silhouette"] = float(silhouette_score(data, y, metric=metric))
+    elif count < size:
         rng = np.random.default_rng(seed)
         # 首先在各个有效簇内抽取至少一条，防止随机样本遗漏小簇。
         indices = [int(rng.choice(np.flatnonzero(y == cls))) for cls in np.unique(y)]
@@ -141,12 +141,15 @@ def evaluate_labels(x, labels, *, seed=42):
         indices.extend(rng.choice(remainder, size=size - len(indices), replace=False).tolist())
         sampled = np.asarray(indices, dtype=int)
         if 2 <= len(np.unique(y[sampled])) < len(sampled):
-            scores["silhouette"] = float(silhouette_score(data[sampled], y[sampled]))
+            scores["silhouette"] = float(silhouette_score(data[sampled], y[sampled], metric=metric))
     scores["calinski_harabasz"] = float(calinski_harabasz_score(data, y))
     scores["davies_bouldin"] = float(davies_bouldin_score(data, y))
     note = ("质量指标仅基于非噪声样本；噪声未计入评分。" if (~valid).any()
             else "质量指标基于参与聚类的全部样本。")
-    if len(y) > 1200:
+    note += f" 轮廓系数距离：{metric}；CH 和 DB 指标使用欧氏空间的簇中心。"
+    if count >= size and len(y) > size:
+        note += " 有效簇数达到抽样上限，无法在保留所有簇的同时计算轮廓系数；该项不适用。"
+    elif len(y) > 1200:
         note += " 轮廓系数使用最多 1200 个样本的固定随机种子抽样。"
     return scores, note
 
@@ -208,7 +211,10 @@ def fit_clustering(frame, *, method="kmeans", columns=None, standardize=True,
         row.update({str(name): float(val) for name, val in source.loc[mask].mean().items()})
         profiles.append(row)
     profile_frame = pd.DataFrame(profiles, columns=["簇标签", "样本数", *list(source.columns)])
-    scores, note = evaluate_labels(x, labels, seed=random_state)
+    scores, note = evaluate_labels(
+        x, labels, seed=random_state,
+        metric="euclidean" if method == "kmeans" else metric,
+    )
     scores["inertia"] = inertia
     scores["noise_ratio"] = noise / n
     if method == "dbscan":

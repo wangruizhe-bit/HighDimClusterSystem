@@ -1,4 +1,5 @@
 """真实的数据清洗与标准化，全部返回新的 DataFrame。"""
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
@@ -17,6 +18,8 @@ def fill_missing(frame, method="mean"):
     names = out.select_dtypes(include="number").columns
     if len(names) == 0:
         raise ValueError("没有可填补的数值变量。")
+    if np.isinf(out[names].to_numpy(dtype=float, na_value=np.nan)).any():
+        raise ValueError("数值变量存在无穷值，请先移除或修正，不能用其填补缺失值。")
     values = out[names].mean() if method == "mean" else out[names].median()
     if any(pd.isna(values[c]) and out[c].isna().any() for c in names):
         raise ValueError("存在整列缺失的数值变量，不能按均值或中位数填补。")
@@ -33,6 +36,8 @@ def scale_numeric(frame, method="zscore"):
         raise ValueError("没有数值变量。")
     if out[names].isna().any().any():
         raise ValueError("请先填补数值变量的缺失值。")
+    if not np.isfinite(out[names].to_numpy(dtype=float)).all():
+        raise ValueError("数值变量存在无穷值，请先清洗。")
     if method == "zscore":
         scaler = StandardScaler()
     elif method == "minmax":

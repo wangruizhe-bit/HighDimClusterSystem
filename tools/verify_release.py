@@ -43,7 +43,7 @@ def digest(path: Path) -> str:
 
 
 def check_bundle(source: Path, transported: Path) -> list[str]:
-    """验证文件集合、大小和 sklearn 隐藏 DLL 的哈希完全一致。"""
+    """验证文件集合、大小和全部文件的哈希完全一致，包含隐藏 DLL。"""
     originals = file_map(source)
     obtained = file_map(transported)
     if not originals:
@@ -67,9 +67,9 @@ def check_bundle(source: Path, transported: Path) -> list[str]:
     )
     if differing:
         raise ValueError(f"下载附件中文件长度不一致：{differing[:12]}")
-    for name in important:
+    for name in originals:
         if digest(originals[name]) != digest(obtained[name]):
-            raise ValueError(f"关键 sklearn DLL 的 SHA256 不一致：{name}")
+            raise ValueError(f"发布文件的 SHA256 不一致：{name}")
     print(
         f"Release integrity OK: {len(originals)} files, "
         f"{len(important)} hidden sklearn DLL(s) retained."

@@ -167,8 +167,8 @@ def fit_reduction(
             not np.isfinite(tsne_perplexity) or not 0 < tsne_perplexity < n_samples
         ):
             raise ValueError(f"t-SNE perplexity 必须大于 0 且小于样本数 {n_samples}。")
-        if type(tsne_max_iter) is not int or not 250 <= tsne_max_iter <= 5000:
-            raise ValueError("t-SNE 迭代次数必须为 250–5000。")
+        if type(tsne_max_iter) is not int or not 300 <= tsne_max_iter <= 5000:
+            raise ValueError("t-SNE 迭代次数必须为 300–5000，需在前 250 次早期夸大阶段后继续优化。")
         if tsne_learning_rate != "auto" and (
             not isinstance(tsne_learning_rate, (int, float, np.floating)) or
             not np.isfinite(tsne_learning_rate) or tsne_learning_rate <= 0

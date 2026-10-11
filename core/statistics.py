@@ -4,11 +4,15 @@ import pandas as pd
 def numeric_data(frame, columns=None):
     if frame is None or not isinstance(frame, pd.DataFrame) or frame.empty:
         raise ValueError("请先导入有效数据。")
+    if frame.columns.duplicated().any():
+        raise ValueError("数据包含重复列名，请先修正。")
     if columns is not None:
         if not columns:
             raise ValueError("请至少选择一个变量。")
         if any(c not in frame.columns for c in columns):
             raise ValueError("所选变量不存在。")
+        if len(set(columns)) != len(columns):
+            raise ValueError("所选变量不能重复。")
         frame = frame.loc[:,columns]
     out = frame.select_dtypes(include="number")
     if len(out.columns) == 0:

@@ -18,12 +18,11 @@ if os.environ.get("MPLBACKEND", "").lower() == "agg":
 else:
     matplotlib.use("QtAgg", force=True)
 
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
 from app.diagnostics import install_crash_handlers, record_fatal_context, set_page_provider
 from app.main_window import MainWindow, PAGES
-from app.styles import STYLE
+from app.fonts import configure_application
 
 
 def _page_name(window: MainWindow) -> str:
@@ -57,8 +56,7 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("高维数据降维与聚类分析系统 V1.0")
-    app.setFont(QFont("Microsoft YaHei UI", 11))
-    app.setStyleSheet(STYLE)
+    configure_application(app)
 
     window = MainWindow()
     set_page_provider(lambda: _page_name(window))
@@ -68,6 +66,18 @@ def main():
     record_fatal_context("主窗口就绪")
 
     try:
+        if "--release-acceptance" in sys.argv:
+            from tools.release_acceptance import run_release_acceptance
+            output = "release-evidence"
+            if "--acceptance-output" in sys.argv:
+                index = sys.argv.index("--acceptance-output")
+                if index + 1 >= len(sys.argv):
+                    raise ValueError("--acceptance-output requires a directory")
+                output = sys.argv[index + 1]
+            evidence = run_release_acceptance(window, output)
+            print("Release acceptance passed: " + json.dumps(evidence, ensure_ascii=False), flush=True)
+            return 0
+
         if "--self-check" in sys.argv:
             os.environ["HIGHDIM_SELF_CHECK"] = "1"
             result = _basic_self_check(window)

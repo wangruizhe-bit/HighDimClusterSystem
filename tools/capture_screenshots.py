@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QApplication
 
 from app.main_window import MainWindow
 from app.styles import STYLE
+from app.fonts import configure_application
 
 
 PROFILES = {
@@ -149,8 +150,7 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
 
     app = QApplication.instance() or QApplication(sys.argv)
-    app.setFont(QFont("Microsoft YaHei UI", 11))
-    app.setStyleSheet(STYLE)
+    configure_application(app)
 
     window = MainWindow()
     window.resize(width, height)

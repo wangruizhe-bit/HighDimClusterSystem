@@ -105,8 +105,8 @@ def run_exe(folder: Path) -> None:
     environment = os.environ.copy()
     environment.pop("PYTHONPATH", None)
     environment.pop("PYTHONHOME", None)
-    environment["QT_QPA_PLATFORM"] = "offscreen"
-    environment["MPLBACKEND"] = "Agg"
+    environment["QT_QPA_PLATFORM"] = "windows" if os.name == "nt" else "offscreen"
+    environment["MPLBACKEND"] = "QtAgg" if os.name == "nt" else "Agg"
     p = subprocess.run(
         [str(exe.resolve()), "--self-check"],
         cwd=folder.resolve(),

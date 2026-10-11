@@ -52,19 +52,19 @@ jobs:
         run: python -m tools.run_with_logs python main.py --graphics-gui-self-check
       - name: Capture 1920x1080 interface at Windows 100%
         env:
-          QT_QPA_PLATFORM: offscreen
+          QT_QPA_PLATFORM: windows
         run: python -m tools.capture_screenshots --profile 1080_100
       - name: Capture 1920x1080 interface at Windows 125%
         env:
-          QT_QPA_PLATFORM: offscreen
+          QT_QPA_PLATFORM: windows
         run: python -m tools.capture_screenshots --profile 1080_125
       - name: Capture default 1600x940 interface
         env:
-          QT_QPA_PLATFORM: offscreen
+          QT_QPA_PLATFORM: windows
         run: python -m tools.capture_screenshots --profile default
       - name: Capture minimum 1180x760 interface
         env:
-          QT_QPA_PLATFORM: offscreen
+          QT_QPA_PLATFORM: windows
         run: python -m tools.capture_screenshots --profile minimum
       - name: Build standalone Windows GUI app with explicit QtAgg hook config
         shell: pwsh

@@ -42,7 +42,7 @@ $Python = Join-Path $RepoRoot ".venv/Scripts/python.exe"
 Invoke-Checked "dependencies" $Python @("-m", "pip", "install", "-r", "requirements.txt", "pyinstaller==6.16.0")
 Invoke-Checked "pip-check" $Python @("-m", "pip", "check")
 Invoke-Checked "compile" $Python @("-m", "compileall", "-q", "main.py", "app", "core", "tests", "tools")
-$env:QT_QPA_PLATFORM = "offscreen"
+$env:QT_QPA_PLATFORM = "windows"
 $env:MPLBACKEND = "Agg"
 Invoke-Checked "all-tests" $Python @("-m", "pytest", "-q")
 $env:QT_QPA_PLATFORM = "windows"

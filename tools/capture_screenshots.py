@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("QT_QPA_PLATFORM", "windows" if os.name == "nt" else "offscreen")
 
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QFont, QImage, QPainter

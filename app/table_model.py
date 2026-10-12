@@ -1,5 +1,6 @@
 """分页式预览：只读取 DataFrame 当前前 500 行并限制单元显示长度。"""
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
+from numbers import Real, Integral
 
 class FrameTableModel(QAbstractTableModel):
     def __init__(self, parent=None):
@@ -19,12 +20,20 @@ class FrameTableModel(QAbstractTableModel):
         return 0 if parent.isValid() or self.frame is None else len(self.frame.columns)
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if not index.isValid() or self.frame is None or role != Qt.ItemDataRole.DisplayRole:
+        if not index.isValid() or self.frame is None:
+            return None
+        if role not in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
             return None
         value = self.frame.iat[index.row(),index.column()]
         import pandas as pd
         if pd.isna(value):
             return "—"
+        if role == Qt.ItemDataRole.ToolTipRole:
+            return str(value)
+        if role != Qt.ItemDataRole.DisplayRole:
+            return None
+        if isinstance(value, Real) and not isinstance(value, Integral):
+            return f"{value:.6g}"
         return str(value)[:180]
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):

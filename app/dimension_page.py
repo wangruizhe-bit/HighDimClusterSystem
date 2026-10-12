@@ -4,12 +4,13 @@ from PySide6.QtWidgets import (
     QAbstractItemView, QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout,
     QGroupBox, QHBoxLayout, QLabel, QListWidget, QMessageBox,
     QPushButton, QSpinBox, QStackedWidget, QTabWidget, QTableView,
-    QVBoxLayout, QWidget,
+    QVBoxLayout, QWidget, QScrollArea, QFrame,
 )
 import pandas as pd
 
 from app.plot_canvas import PlotCanvas, StaticPlotCanvas
 from app.table_model import FrameTableModel
+from app.studio_components import AnalysisLayout
 from core.dimension_reduction import METHOD_LABELS, fit_reduction
 
 
@@ -45,19 +46,20 @@ class ReductionPage(QWidget):
         self.busy = False
         self._submitted_revision = 0
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
+        workspace = AnalysisLayout(self)
+        self.parameter_panel = workspace.parameter_panel
+        root = workspace.results
         root.setSpacing(14)
 
         form = QGroupBox("分析方法与变量")
-        form_layout = QHBoxLayout(form)
+        form_layout = QVBoxLayout(form)
         select_panel = QVBoxLayout()
-        select_panel.addWidget(QLabel("参与分析的数值变量（不选择则使用所有数值变量）"))
+        select_panel.addWidget(QLabel("变量 · 默认全部"))
         self.variables = QListWidget()
         self.variables.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.variables.setMaximumHeight(195)
+        self.variables.setMaximumHeight(115)
         select_panel.addWidget(self.variables)
-        form_layout.addLayout(select_panel, 3)
+        form_layout.addLayout(select_panel)
 
         settings = QVBoxLayout()
         basic = QFormLayout()
@@ -133,8 +135,8 @@ class ReductionPage(QWidget):
         self.run_button.setObjectName("primary")
         self.run_button.clicked.connect(self.start_analysis)
         settings.addWidget(self.run_button)
-        form_layout.addLayout(settings, 2)
-        root.addWidget(form)
+        form_layout.addLayout(settings)
+        workspace.add_parameters(form)
 
         self.summary = QLabel("请先导入数据。")
         self.summary.setWordWrap(True)
@@ -167,7 +169,9 @@ class ReductionPage(QWidget):
         self.canvas3d.setMinimumHeight(380)
         self.result_tabs.addTab(self.canvas2d, "二维降维结果")
         self.result_tabs.addTab(self.canvas3d, "三维降维结果")
-        root.addWidget(self.result_tabs)
+        self.workspace_tabs = QTabWidget()
+        self.workspace_tabs.addTab(self.result_tabs, "结果")
+        root.addWidget(self.workspace_tabs, 1)
 
         group = QGroupBox("分析记录与方法对比")
         record_layout = QVBoxLayout(group)
@@ -196,7 +200,11 @@ class ReductionPage(QWidget):
         self.comparison_canvas = PlotCanvas()
         self.comparison_canvas.setMinimumHeight(360)
         record_layout.addWidget(self.comparison_canvas)
-        root.addWidget(group)
+        record_scroll = QScrollArea()
+        record_scroll.setWidgetResizable(True)
+        record_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        record_scroll.setWidget(group)
+        self.workspace_tabs.addTab(record_scroll, "记录与对比")
 
         self.session.data_changed.connect(self.on_data_changed)
         self.on_method_changed()
@@ -291,11 +299,12 @@ class ReductionPage(QWidget):
         trust = result.metrics.get("trustworthiness")
         trust_text = f"{trust:.4f}" if trust is not None else "未计算（样本过多）"
         self.summary.setText(
-            f"已完成：{result.method_label}；{result.sample_count} 行样本 × "
-            f"{len(result.columns)} 个变量 → {result.dimensions} 维；"
-            f"{'标准化' if result.standardized else '未标准化'}；"
-            f"局部邻域保持度={trust_text}；用时 {result.elapsed_seconds:.2f} 秒。"
+            f"{result.method_label} · {result.sample_count} 个样本 · {result.dimensions} 维 · "
+            f"局部邻域保持度 {trust_text}"
         )
+        self.summary.setToolTip(
+            f"{'已标准化' if result.standardized else '未标准化'} · "
+            f"{len(result.columns)} 个变量 · 用时 {result.elapsed_seconds:.2f} 秒")
         self.coordinate_model.set_frame(result.coordinates)
         self.loading_model.set_frame(result.factor_loadings)
         self.unique_model.set_frame(result.uniqueness)

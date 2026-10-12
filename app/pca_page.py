@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 from app.diagnostics import log_plot_exception, record_fatal_context
 from app.plot_canvas import StaticPlotCanvas
 from app.table_model import FrameTableModel
+from app.studio_components import AnalysisLayout
 from core.pca import fit_pca
 
 
@@ -36,51 +37,52 @@ class PCAPage(QWidget):
         }
         self._plot_generation = 0
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
+        workspace = AnalysisLayout(self)
+        self.parameter_panel = workspace.parameter_panel
+        root = workspace.results
         root.setSpacing(16)
 
         parameters = QGroupBox("主成分分析设置")
         grid = QGridLayout(parameters)
         grid.setHorizontalSpacing(16)
         grid.setVerticalSpacing(10)
-        grid.addWidget(QLabel("参与分析的数值变量（可多选，不选择则使用全部数值变量）"), 0, 0, 1, 2)
+        grid.addWidget(QLabel("变量 · 默认全部"), 0, 0, 1, 2)
         self.variables = QListWidget()
         self.variables.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.variables.setMaximumHeight(180)
-        grid.addWidget(self.variables, 1, 0, 5, 2)
+        self.variables.setMaximumHeight(130)
+        grid.addWidget(self.variables, 1, 0, 1, 2)
 
         self.standardize = QCheckBox("进行 Z-score 标准化")
         self.standardize.setChecked(True)
-        grid.addWidget(self.standardize, 1, 2, 1, 2)
+        grid.addWidget(self.standardize, 2, 0, 1, 2)
 
-        grid.addWidget(QLabel("主成分数量选择方式"), 2, 2)
+        grid.addWidget(QLabel("保留方式"), 3, 0, 1, 2)
         self.mode = QComboBox()
         self.mode.addItem("自动推荐（累计贡献率 ≥85%）", "auto")
         self.mode.addItem("指定保留主成分数量", "manual")
         self.mode.addItem("按累计贡献率阈值", "threshold")
         self.mode.currentIndexChanged.connect(self.update_controls)
-        grid.addWidget(self.mode, 2, 3)
+        grid.addWidget(self.mode, 4, 0, 1, 2)
 
-        grid.addWidget(QLabel("主成分数量 k"), 3, 2)
+        grid.addWidget(QLabel("主成分数 k"), 5, 0)
         self.count = QSpinBox()
         self.count.setRange(1, 99999)
         self.count.setValue(2)
-        grid.addWidget(self.count, 3, 3)
+        grid.addWidget(self.count, 5, 1)
 
-        grid.addWidget(QLabel("累计贡献率阈值（%）"), 4, 2)
+        grid.addWidget(QLabel("贡献率（%）"), 6, 0)
         self.threshold = QDoubleSpinBox()
         self.threshold.setRange(1., 100.)
         self.threshold.setDecimals(1)
         self.threshold.setSingleStep(1.)
         self.threshold.setValue(85.)
-        grid.addWidget(self.threshold, 4, 3)
+        grid.addWidget(self.threshold, 6, 1)
 
         self.run_button = QPushButton("执行主成分分析")
         self.run_button.setObjectName("primary")
         self.run_button.clicked.connect(self.run_analysis)
-        grid.addWidget(self.run_button, 5, 2, 1, 2)
-        root.addWidget(parameters)
+        grid.addWidget(self.run_button, 7, 0, 1, 2)
+        workspace.add_parameters(parameters)
 
         self.summary = QLabel("尚无 PCA 结果。请先导入数据。")
         self.summary.setWordWrap(True)
@@ -116,7 +118,7 @@ class PCAPage(QWidget):
             canvas.setMinimumHeight(400)
             self.tabs.addTab(canvas, title)
         self.tabs.currentChanged.connect(self._on_tab_changed)
-        root.addWidget(self.tabs)
+        root.addWidget(self.tabs, 1)
 
         self.notes = QLabel("载荷表示变量与主成分得分的相关性；主成分系数为特征向量。")
         self.notes.setWordWrap(True)
@@ -194,10 +196,9 @@ class PCAPage(QWidget):
         self.session.latest_pca = result
         self._mark_plots_dirty()
         self.summary.setText(
-            f"本次分析：{result.sample_count} 个样本，{len(result.columns)} 个变量；"
-            f"保留 {result.chosen_components} / {result.total_components} 个主成分；"
-            f"累计方差贡献率 {result.retained_variance * 100:.2f}%；"
-            f"{'已标准化' if result.standardized else '未标准化'}。"
+            f"{result.sample_count} 个样本 · {result.chosen_components} / {result.total_components} 个主成分 · "
+            f"累计贡献 {result.retained_variance * 100:.2f}% · "
+            f"{'已标准化' if result.standardized else '未标准化'}"
         )
         for attr, model in self.tables.items():
             model.set_frame(getattr(result, attr))

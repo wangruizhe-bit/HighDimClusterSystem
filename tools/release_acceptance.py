@@ -146,7 +146,11 @@ def run_release_acceptance(window, output):
     _wait(lambda: not evaluation.busy, timeout=180, name="K search")
     if window.session.k_search_result is None:
         raise RuntimeError("K search did not produce results")
+    evaluation.workspace_tabs.setCurrentIndex(0)
+    evaluation.history_tabs.setCurrentIndex(0)
     capture("15_evaluation", 6, evaluation.history_view)
+    evaluation.workspace_tabs.setCurrentIndex(1)
+    evaluation.search_tabs.setCurrentIndex(1)
     capture("16_k_search", 6, evaluation.k_canvas)
 
     window.goto(7)

@@ -13,11 +13,10 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "windows" if os.name == "nt" else "offscreen")
 
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QFont, QImage, QPainter
+from PySide6.QtGui import QImage, QPainter
 from PySide6.QtWidgets import QApplication
 
 from app.main_window import MainWindow
-from app.styles import STYLE
 from app.fonts import configure_application
 
 
@@ -79,19 +78,12 @@ def validate_shell(window, app):
     if brand.fontMetrics().horizontalAdvance(brand.text()) > brand.width() - 4:
         raise RuntimeError("软件名称可用宽度不足。")
 
-    rail = window.data_lens
-    if not 245 <= rail.width() <= 275:
-        raise RuntimeError(f"右侧数据概览宽度异常：{rail.width()}px")
-
-    labels = [
-        window.studio_header.dataset_text,
-        rail.dataset_name,
-        rail.dataset_shape,
-        rail.mode_title,
-    ]
-    for widget in labels:
-        if widget.width() <= 20 or widget.height() <= 12:
-            raise RuntimeError(f"关键文字控件尺寸异常：{widget.objectName()}")
+    if window.data_lens.isVisible():
+        raise RuntimeError("数据概览应默认收起。")
+    if window.studio_header.height() + window.mode_strip.height() > 104:
+        raise RuntimeError("顶栏与导航占用过多高度。")
+    if window.stack.width() < window.centralWidget().width() * .98:
+        raise RuntimeError("主工作区未占满可用宽度。")
 
 
 def validate_home_bottom(window, app):
@@ -101,42 +93,19 @@ def validate_home_bottom(window, app):
     bar = scroll.verticalScrollBar()
     bar.setValue(bar.maximum())
     pump(app, 0.25)
-
-    if bar.value() != bar.maximum():
-        raise RuntimeError("首页滚动条无法到达最大值。")
-
-    last = window.home_capability_rows[-1]
+    last = window.home_dataset_hint
     bottom = last.mapTo(scroll.viewport(), QPoint(0, last.height())).y()
     remaining = scroll.viewport().height() - bottom
-    if remaining < 20:
-        raise RuntimeError(
-            f"首页最后一项滚到底后仅剩 {remaining}px 空白，小于 20px。"
-        )
-
-    pipeline_last = window.home_pipeline_steps[-1]
-    pipeline_bottom = pipeline_last.mapTo(
-        scroll.viewport(), QPoint(0, pipeline_last.height())
-    ).y()
-    if pipeline_bottom > scroll.viewport().height() - 20:
-        raise RuntimeError("首页“评价与交付”未完整露出。")
-
+    if remaining < 16:
+        raise RuntimeError(f"首页底部内容被截断：{remaining}px")
     return remaining
 
 
 def validate_default_ratio(window):
-    rail = window.data_lens.width()
-    workspace = window.stack.width()
-    ratio = workspace / (workspace + rail)
-    if not 0.80 <= ratio <= 0.84:
-        raise RuntimeError(
-            f"默认窗口主工作区占比 {ratio:.3f}，未落在 80%–84%。"
-        )
-    body_total = window.home_pipeline.width() + window.home_capability.width()
-    pipeline_ratio = window.home_pipeline.width() / body_total
-    if not 0.64 <= pipeline_ratio <= 0.69:
-        raise RuntimeError(
-            f"首页分析路径占比 {pipeline_ratio:.3f}，未达到约 2:1。"
-        )
+    if window.stack.width() < window.centralWidget().width() * .98:
+        raise RuntimeError("主工作区宽度不足。")
+    if window.home_preview.height() < 280:
+        raise RuntimeError("首页数据预览区域不足。")
 
 
 def main():

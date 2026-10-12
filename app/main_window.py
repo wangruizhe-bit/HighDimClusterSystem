@@ -1,5 +1,4 @@
 """八页中文界面：统计、PCA、降维、聚类与评价均接入真实计算。"""
-from functools import partial
 from pathlib import Path
 import sys
 
@@ -7,7 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel,
     QLayout, QListWidget, QMainWindow, QMessageBox, QPushButton, QScrollArea,
-    QSizePolicy, QStackedWidget, QTableView, QVBoxLayout, QWidget,
+    QSizePolicy, QStackedWidget, QTableView, QVBoxLayout, QWidget, QComboBox, QTabWidget,
 )
 from core import preprocessing, statistics
 from app.diagnostics import record_fatal_context
@@ -20,7 +19,7 @@ from app.results_page import ResultsPage
 from app.session import Session
 from app.table_model import FrameTableModel
 from app.studio_components import (
-    DataLensRail, MetricGrid, MetricTile, ModeStrip, PageBanner, PipelineStep, StudioHeader,
+    DataLensRail, MetricGrid, MetricTile, ModeStrip, PageBanner, StudioHeader, AnalysisLayout,
 )
 
 PAGES = [
@@ -59,8 +58,8 @@ def card(title=None):
     frame = QFrame()
     frame.setObjectName("card")
     lay = QVBoxLayout(frame)
-    lay.setContentsMargins(22, 20, 22, 20)
-    lay.setSpacing(14)
+    lay.setContentsMargins(14, 12, 14, 12)
+    lay.setSpacing(10)
     if title:
         lay.addWidget(label(title, "cardTitle"))
     return frame, lay
@@ -103,7 +102,7 @@ class MainWindow(QMainWindow):
         # Data Studio 主界面：品牌顶栏、横向模式导航、分析画布和数据概览。
         self.studio_header = StudioHeader(
             self.open_file,
-            lambda: self.goto(7),
+            self.toggle_data_lens,
             self,
         )
         shell.addWidget(self.studio_header)
@@ -115,6 +114,7 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.stack.setObjectName("studioCanvas")
         self.data_lens = DataLensRail(self)
+        self.data_lens.setVisible(False)
         content_row = QHBoxLayout()
         content_row.setContentsMargins(0, 0, 0, 0)
         content_row.setSpacing(0)
@@ -138,8 +138,8 @@ class MainWindow(QMainWindow):
             page.setObjectName("studioPage")
             page.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             lay = QVBoxLayout(page)
-            lay.setContentsMargins(26, 24, 26, 32)
-            lay.setSpacing(18)
+            lay.setContentsMargins(20, 16, 20, 20)
+            lay.setSpacing(12)
             lay.setAlignment(Qt.AlignmentFlag.AlignTop)
             lay.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
             lay.addWidget(PageBanner(index, name))
@@ -150,6 +150,10 @@ class MainWindow(QMainWindow):
         self.session.data_changed.connect(self.refresh_all)
         self.goto(0)
         self.refresh_all()
+
+    def toggle_data_lens(self, checked=False):
+        self.data_lens.setVisible(bool(checked))
+        self.studio_header.result_button.setChecked(bool(checked))
 
     def goto(self, number):
         if not 0 <= number < self.stack.count():
@@ -191,203 +195,129 @@ class MainWindow(QMainWindow):
             self.fail("操作发生意外错误，请检查数据文件与输入参数。")
 
     def make_home(self, layout):
-        hero = QFrame()
-        hero.setObjectName("homeHero")
-        hero_layout = QHBoxLayout(hero)
-        hero_layout.setContentsMargins(30, 27, 30, 27)
-        hero_layout.setSpacing(26)
-
-        copy = QVBoxLayout()
-        copy.setSpacing(10)
-        copy.addWidget(label("高维数据降维与聚类分析", "heroTitle"))
-        copy.addWidget(label(
-            "导入数据后，可完成数据预处理、特征分析、降维、聚类及模型评价。",
-            "heroSubtitle"
-        ))
-        hero_actions = QHBoxLayout()
-        hero_actions.setSpacing(10)
-        hero_actions.addWidget(button("＋  导入数据", self.open_file, True))
-        hero_actions.addWidget(button("加载示例数据", self.load_demo_data))
-        hero_actions.addWidget(button("探索变量", lambda: self.goto(2)))
-        hero_actions.addWidget(button("开始聚类", lambda: self.goto(5)))
-        hero_actions.addStretch(1)
-        copy.addLayout(hero_actions)
-        hero_layout.addLayout(copy, 3)
-
-        context = QFrame()
-        context.setObjectName("homeContext")
-        ctx = QVBoxLayout(context)
-        ctx.setContentsMargins(20, 18, 20, 18)
-        ctx.setSpacing(8)
-        ctx.addWidget(label("工作区状态", "contextEyebrow"))
-        self.home_dataset_name = label("尚未导入数据", "contextTitle")
-        ctx.addWidget(self.home_dataset_name)
-        self.home_dataset_hint = label("导入 CSV 或 Excel 后开始分析", "contextHint")
-        ctx.addWidget(self.home_dataset_hint)
-        ctx.addStretch(1)
-        self.home_result_count = label("0 个分析结果", "contextBadge")
-        ctx.addWidget(self.home_result_count)
-        hero_layout.addWidget(context, 1)
-        layout.addWidget(hero)
+        actions = QHBoxLayout()
+        self.home_dataset_name = label("选择一个数据集，开始分析", "homeHeading")
+        actions.addWidget(self.home_dataset_name, 1)
+        actions.addWidget(button("导入数据", self.open_file, True))
+        actions.addWidget(button("使用示例", self.load_demo_data))
+        layout.addLayout(actions)
 
         self.metric_tiles = {
-            "rows": MetricTile("样本数量", "0", "当前数据", "violet"),
-            "numeric": MetricTile("数值变量", "0", "可分析变量", "amber"),
-            "missing": MetricTile("缺失单元格", "0", "待处理数据", "rose"),
-            "results": MetricTile("分析结果", "0", "已生成结果", "mint"),
+            "rows": MetricTile("样本", "0"),
+            "numeric": MetricTile("数值变量", "0"),
+            "missing": MetricTile("缺失", "0"),
+            "results": MetricTile("分析结果", "0"),
         }
         metrics = MetricGrid()
         metrics.add_tiles(list(self.metric_tiles.values()))
         layout.addWidget(metrics)
 
-        self.home_body_widget = QWidget()
-        self.home_body_widget.setObjectName("homeBody")
-        self.home_body_widget.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
-        )
-        body = QHBoxLayout(self.home_body_widget)
-        body.setContentsMargins(0, 0, 0, 0)
-        body.setSpacing(16)
-        body.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
-
         self.home_pipeline = QFrame()
-        self.home_pipeline.setObjectName("studioPanel")
-        self.home_pipeline.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
-        )
-        pipeline_layout = QVBoxLayout(self.home_pipeline)
-        pipeline_layout.setContentsMargins(24, 22, 24, 24)
-        pipeline_layout.setSpacing(12)
-        pipeline_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
-        pipeline_layout.addWidget(label("分析路径", "panelTitle"))
-        pipeline_layout.addWidget(label("常用分析流程", "panelHint"))
-        steps = [
-            (1, "准备数据", "导入 · 清洗 · 缺失值 · 标准化", 1),
-            (2, "理解结构", "描述统计 · 相关性 · PCA · 嵌入", 2),
-            (3, "识别类别", "K-means · 层次聚类 · DBSCAN", 5),
-            (4, "评价与交付", "质量指标 · K 值 · 结果导出", 6),
-        ]
+        self.home_pipeline.setObjectName("quickActions")
+        row = QHBoxLayout(self.home_pipeline)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(12)
         self.home_pipeline_steps = []
-        for number, title, hint, target in steps:
-            step = PipelineStep(
-                number, title, hint,
-                lambda checked=False, page=target: self.goto(page)
-            )
-            step.setMinimumHeight(72)
-            self.home_pipeline_steps.append(step)
-            pipeline_layout.addWidget(step)
-        body.addWidget(self.home_pipeline, 2)
+        for title, target, hint in [
+            ("PCA", 3, "主成分分析"),
+            ("降维", 4, "因子分析 / MDS / t-SNE"),
+            ("聚类", 5, "K-means / 层次聚类 / DBSCAN"),
+            ("评价", 6, "聚类指标 / K 值选择"),
+        ]:
+            action = button(title + "  →", lambda checked=False, page=target: self.goto(page))
+            action.setObjectName("quickAction")
+            action.setToolTip(hint)
+            row.addWidget(action, 1)
+            self.home_pipeline_steps.append(action)
+        layout.addWidget(self.home_pipeline)
 
-        self.home_capability = QFrame()
-        self.home_capability.setObjectName("studioPanel")
-        self.home_capability.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
-        )
-        cap = QVBoxLayout(self.home_capability)
-        cap.setContentsMargins(22, 22, 22, 24)
-        cap.setSpacing(10)
-        cap.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
-        cap.addWidget(label("分析能力", "panelTitle"))
-        cap.addWidget(label("当前可用方法", "panelHint"))
-        capabilities = [
-            ("PCA", "特征值、载荷、得分和二维/三维图"),
-            ("FA · MDS · t-SNE", "多方法降维与嵌入"),
-            ("K-means · 层次聚类 · DBSCAN", "三类聚类方法"),
-            ("Silhouette · CH · DB", "聚类质量与 K 值评价"),
-            ("CSV · Excel · HTML", "结果表、报告和图像导出"),
-        ]
-        self.home_capability_rows = []
-        for name, hint in capabilities:
-            line = QFrame()
-            line.setObjectName("capabilityRow")
-            line.setMinimumHeight(54)
-            row = QHBoxLayout(line)
-            row.setContentsMargins(14, 10, 14, 10)
-            row.setSpacing(10)
-            name_label = label(name, "capabilityName")
-            hint_label = label(hint, "capabilityHint")
-            hint_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            row.addWidget(name_label)
-            row.addStretch(1)
-            row.addWidget(hint_label)
-            self.home_capability_rows.append(line)
-            cap.addWidget(line)
-        body.addWidget(self.home_capability, 1)
-        layout.addWidget(self.home_body_widget)
-        layout.addSpacing(28)
+        panel, content = card("数据预览")
+        self.home_preview = table()
+        self.home_preview.setMinimumHeight(280)
+        self.home_preview_model = FrameTableModel(self.home_preview)
+        self.home_preview.setModel(self.home_preview_model)
+        content.addWidget(self.home_preview)
+        layout.addWidget(panel, 1)
+        self.home_dataset_hint = label("尚未导入数据", "muted")
+        layout.addWidget(self.home_dataset_hint)
 
         def update():
             summary = self.session.data.summary()
-            self.studio_header.update_dataset(summary)
             imported = summary["rows"] > 0
-            self.home_dataset_name.setText(summary["name"] if imported else "尚未导入数据")
+            self.home_dataset_name.setText(summary["name"] if imported else "选择一个数据集，开始分析")
             self.home_dataset_hint.setText(
-                f"{summary['rows']} 行 × {summary['columns']} 列 · "
-                f"{summary['numeric']} 个数值变量"
-                if imported else "导入 CSV 或 Excel 后开始分析"
+                f"{summary['rows']} 行 · {summary['columns']} 列 · 当前工作数据"
+                if imported else "支持 CSV、XLSX 和 XLS"
             )
-            result_count = self._result_count()
-            self.home_result_count.setText(f"{result_count} 个分析结果")
-            self.metric_tiles["rows"].set_value(summary["rows"], "当前数据")
-            self.metric_tiles["numeric"].set_value(summary["numeric"], "可分析变量")
-            self.metric_tiles["missing"].set_value(summary["missing"], "待处理数据")
-            self.metric_tiles["results"].set_value(result_count, "已生成结果")
+            self.home_preview_model.set_frame(self.session.data.current_data)
+            for key, value in (("rows", summary["rows"]), ("numeric", summary["numeric"]),
+                               ("missing", summary["missing"]), ("results", self._result_count())):
+                self.metric_tiles[key].set_value(value)
         self.refreshers.append(update)
         self.session.results_changed.connect(update)
         self.session.results_changed.connect(self._refresh_data_lens)
 
     def make_data_page(self, layout):
-        info, pane = card("导入与预处理")
+        panel, pane = card()
         actions = QHBoxLayout()
-        actions.addWidget(button("导入 CSV / Excel", self.open_file, True))
-        actions.addWidget(button("加载示例数据", self.load_demo_data))
+        actions.addWidget(button("导入数据", self.open_file, True))
+        actions.addWidget(button("使用示例", self.load_demo_data))
         actions.addWidget(button("恢复原始数据", lambda: self.guarded(self.session.restore)))
-        actions.addStretch()
+        actions.addStretch(1)
         pane.addLayout(actions)
-        grid = QGridLayout()
-        items = [
-            ("删除含缺失值的样本", lambda f: preprocessing.drop_missing(f)),
-            ("均值填补数值缺失", lambda f: preprocessing.fill_missing(f, "mean")),
-            ("中位数填补数值缺失", lambda f: preprocessing.fill_missing(f, "median")),
-            ("删除重复样本", lambda f: preprocessing.remove_duplicates(f)),
+        processing = QHBoxLayout()
+        processing.addWidget(label("预处理"))
+        self.preprocess_selector = QComboBox()
+        self.preprocessing_operations = [
+            ("删除缺失行", lambda f: preprocessing.drop_missing(f)),
+            ("均值填补", lambda f: preprocessing.fill_missing(f, "mean")),
+            ("中位数填补", lambda f: preprocessing.fill_missing(f, "median")),
+            ("删除重复行", lambda f: preprocessing.remove_duplicates(f)),
             ("Z-score 标准化", lambda f: preprocessing.scale_numeric(f, "zscore")),
             ("Min-Max 归一化", lambda f: preprocessing.scale_numeric(f, "minmax")),
         ]
-        for i, (title, operation) in enumerate(items):
-            grid.addWidget(button(title, partial(self.preprocess, title, operation)), i // 3, i % 3)
-        pane.addLayout(grid)
-        layout.addWidget(info)
-        panel, pane = card("数据基本信息")
-        self.data_summary = label("尚未导入数据。")
-        pane.addWidget(self.data_summary)
+        self.preprocess_selector.addItems([name for name, _ in self.preprocessing_operations])
+        processing.addWidget(self.preprocess_selector)
+        self.preprocess_apply_button = button("应用", self.apply_preprocessing)
+        processing.addWidget(self.preprocess_apply_button)
+        processing.addStretch(1)
+        self.data_summary = label("尚未导入数据", "muted")
+        processing.addWidget(self.data_summary)
+        pane.addLayout(processing)
         layout.addWidget(panel)
-        panel, pane = card("数据预览（最多显示前 500 行）")
+
+        self.data_tabs = QTabWidget()
         self.data_table = table()
+        self.data_table.setMinimumHeight(380)
         self.data_model = FrameTableModel(self.data_table)
         self.data_table.setModel(self.data_model)
-        pane.addWidget(self.data_table)
-        layout.addWidget(panel)
-        panel, pane = card("逐列数据概况")
+        self.data_tabs.addTab(self.data_table, "数据")
         self.column_table = table()
         self.column_model = FrameTableModel(self.column_table)
         self.column_table.setModel(self.column_model)
-        pane.addWidget(self.column_table)
-        layout.addWidget(panel)
+        self.data_tabs.addTab(self.column_table, "变量概况")
+        layout.addWidget(self.data_tabs, 1)
 
         def update():
-            if self.session.data.current_data is None:
-                self.data_model.set_frame(None)
+            frame = self.session.data.current_data
+            self.data_model.set_frame(frame)
+            self.home_preview_model.set_frame(frame)
+            if frame is None:
                 self.column_model.set_frame(None)
-                self.data_summary.setText("尚未导入数据。")
+                self.data_summary.setText("尚未导入数据")
+                self.preprocess_apply_button.setEnabled(False)
                 return
             stats = self.session.data.summary()
             self.data_summary.setText(
-                f"文件：{stats['name']}    行数：{stats['rows']}    列数：{stats['columns']}\n"
-                f"数值变量：{stats['numeric']}    非数值变量：{stats['non_numeric']}    "
-                f"缺失值：{stats['missing']}    重复行：{stats['duplicates']}")
-            self.data_model.set_frame(self.session.data.current_data)
+                f"{stats['rows']} 行 · {stats['columns']} 列 · 缺失 {stats['missing']} · 重复 {stats['duplicates']}")
+            self.data_summary.setToolTip(f"{stats['name']}\n数值变量 {stats['numeric']} · 非数值变量 {stats['non_numeric']}")
             self.column_model.set_frame(self.session.data.column_summary())
+            self.preprocess_apply_button.setEnabled(True)
         self.refreshers.append(update)
+
+    def apply_preprocessing(self):
+        name, operation = self.preprocessing_operations[self.preprocess_selector.currentIndex()]
+        self.preprocess(name, operation)
 
     def open_file(self):
         file, _ = QFileDialog.getOpenFileName(
@@ -420,11 +350,12 @@ class MainWindow(QMainWindow):
         self.guarded(run)
 
     def make_feature_page(self, layout):
-        panel, pane = card("数值变量选择")
-        pane.addWidget(label("可多选变量；未选择时默认分析全部数值列。"))
+        workspace = QWidget()
+        split = AnalysisLayout(workspace)
+        panel, pane = card("变量 · 默认全部")
         self.feature_vars = QListWidget()
         self.feature_vars.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.feature_vars.setMaximumHeight(180)
+        self.feature_vars.setMaximumHeight(160)
         pane.addWidget(self.feature_vars)
         actions = QGridLayout()
         feature_actions = [
@@ -440,18 +371,20 @@ class MainWindow(QMainWindow):
         for i, (caption, fn) in enumerate(feature_actions):
             action_button = button(caption, fn, i == 0)
             self.feature_action_buttons[caption] = action_button
-            actions.addWidget(action_button, i // 4, i % 4)
+            actions.addWidget(action_button, i, 0)
         pane.addLayout(actions)
-        layout.addWidget(panel)
-        panel, pane = card("真实统计计算结果")
+        split.add_parameters(panel)
+        self.feature_tabs = QTabWidget()
         self.stats_table = table()
         self.stats_model = FrameTableModel(self.stats_table)
         self.stats_table.setModel(self.stats_model)
-        pane.addWidget(self.stats_table)
+        self.stats_table.setMinimumHeight(400)
+        self.feature_tabs.addTab(self.stats_table, "统计表")
         self.statistics_canvas = PlotCanvas()
-        self.statistics_canvas.setMinimumHeight(310)
-        pane.addWidget(self.statistics_canvas)
-        layout.addWidget(panel)
+        self.statistics_canvas.setMinimumHeight(400)
+        self.feature_tabs.addTab(self.statistics_canvas, "图表")
+        split.results.addWidget(self.feature_tabs, 1)
+        layout.addWidget(workspace, 1)
 
         def update():
             self.feature_vars.clear()
@@ -476,6 +409,7 @@ class MainWindow(QMainWindow):
             else:
                 output = statistics.covariance(df, cols).rename_axis("变量").reset_index()
             self.stats_model.set_frame(output)
+            self.feature_tabs.setCurrentIndex(0)
             names = {"describe": "描述性统计", "corr": "Pearson 相关性", "cov": "协方差"}
             self.session.feature_result = (names[kind], output.copy(deep=True))
             self.session.results_changed.emit()
@@ -488,6 +422,7 @@ class MainWindow(QMainWindow):
                 self.session.data.get_data(), self.selected_columns(self.feature_vars))
 
             def build(axes):
+                from mpl_toolkits.axes_grid1 import make_axes_locatable
                 pic = axes.imshow(matrix.to_numpy(), cmap="Blues", vmin=-1, vmax=1)
                 axes.set_xticks(
                     range(len(matrix.columns)),
@@ -496,14 +431,15 @@ class MainWindow(QMainWindow):
                 )
                 axes.set_yticks(range(len(matrix.index)), [str(x) for x in matrix.index])
                 axes.set_title("Pearson 相关热力图")
-                self.statistics_canvas.figure.colorbar(
-                    pic, ax=axes, fraction=.045, pad=.035
-                )
+                color_axis = make_axes_locatable(axes).append_axes("right", size="4%", pad=.18)
+                self.statistics_canvas.figure.colorbar(pic, cax=color_axis)
+                self.statistics_canvas.figure.subplots_adjust(bottom=.24, top=.90)
 
             if self.statistics_canvas.safe_update(
                 "Pearson 相关热力图", build, force_draw=True
             ):
                 self.feature_figure_ready = True
+                self.feature_tabs.setCurrentIndex(1)
                 self.session.results_changed.emit()
         self.guarded(work)
 
@@ -576,6 +512,7 @@ class MainWindow(QMainWindow):
             }.get(kind, "特征统计图")
             if canvas.safe_update(title, build, force_draw=True):
                 self.feature_figure_ready = True
+                self.feature_tabs.setCurrentIndex(1)
                 self.session.results_changed.emit()
         self.guarded(work)
 

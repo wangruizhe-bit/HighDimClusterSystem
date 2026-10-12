@@ -26,10 +26,14 @@ def chinese_font_family():
 
 def configure_application(app):
     family = chinese_font_family()
-    app.setFont(QFont(family, 11))
+    font = QFont(family, 11)
+    if app.font() != font:
+        app.setFont(font)
     # Use the same verified family in QSS: otherwise QSS overrides app.setFont.
-    app.setStyleSheet(STYLE.replace(
+    style = STYLE.replace(
         '"Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC"',
         f'"{family}"',
-    ))
+    )
+    if app.styleSheet() != style:
+        app.setStyleSheet(style)
     return family

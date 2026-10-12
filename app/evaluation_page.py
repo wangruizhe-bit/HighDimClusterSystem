@@ -2,12 +2,13 @@
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView, QCheckBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
-    QListWidget, QMessageBox, QPushButton, QSpinBox, QTableView, QVBoxLayout, QWidget,
+    QListWidget, QMessageBox, QPushButton, QSpinBox, QTableView, QVBoxLayout, QWidget, QTabWidget,
 )
 import pandas as pd
 
 from app.plot_canvas import PlotCanvas
 from app.table_model import FrameTableModel
+from app.studio_components import AnalysisLayout
 from core.clustering import search_k
 
 
@@ -43,7 +44,7 @@ class EvaluationPage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(13)
-        self.heading = QLabel("Silhouette、CH 越高通常越好，DB 越低通常越好；DBSCAN 评分不含噪声。")
+        self.heading = QLabel("Silhouette ↑　CH ↑　DB ↓　· DBSCAN 评价不含噪声")
         self.heading.setWordWrap(True)
         root.addWidget(self.heading)
 
@@ -53,25 +54,33 @@ class EvaluationPage(QWidget):
         self.history_model = FrameTableModel(self.history_view)
         self.history_view.setModel(self.history_model)
         self.history_view.horizontalHeader().setStretchLastSection(True)
-        self.history_view.setMinimumHeight(200)
-        history_lay.addWidget(self.history_view)
+        self.history_view.setMinimumHeight(400)
+        self.history_tabs = QTabWidget()
+        self.history_tabs.addTab(self.history_view, "运行记录")
+        history_lay.addWidget(self.history_tabs, 1)
         self.record_summary = QLabel("请先进入“聚类分析”运行至少一个算法。")
         self.record_summary.setWordWrap(True)
         history_lay.addWidget(self.record_summary)
         self.score_canvas = PlotCanvas()
-        self.score_canvas.setMinimumHeight(330)
-        history_lay.addWidget(self.score_canvas)
-        root.addWidget(history)
+        self.score_canvas.setMinimumHeight(400)
+        self.history_tabs.addTab(self.score_canvas, "指标图")
+        self.workspace_tabs = QTabWidget()
+        self.workspace_tabs.addTab(history, "聚类对比")
+        root.addWidget(self.workspace_tabs, 1)
+        scan_page = QWidget()
+        scan_workspace = AnalysisLayout(scan_page)
+        scan_results = scan_workspace.results
+        self.workspace_tabs.addTab(scan_page, "选择 K")
 
-        selection = QGroupBox("K-means K 值辅助选择：肘部法与轮廓系数法")
-        s_lay = QHBoxLayout(selection)
+        selection = QGroupBox("扫描设置")
+        s_lay = QVBoxLayout(selection)
         left = QVBoxLayout()
-        left.addWidget(QLabel("参与 K 扫描的数值变量（不选默认全部）"))
+        left.addWidget(QLabel("变量 · 默认全部"))
         self.variables = QListWidget()
-        self.variables.setMaximumHeight(190)
+        self.variables.setMaximumHeight(115)
         self.variables.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
         left.addWidget(self.variables)
-        s_lay.addLayout(left, 3)
+        s_lay.addLayout(left)
         controls = QFormLayout()
         self.standardize = QCheckBox("Z-score 标准化")
         self.standardize.setChecked(True)
@@ -87,32 +96,34 @@ class EvaluationPage(QWidget):
         self.max_iter = QSpinBox()
         self.max_iter.setRange(10, 3000)
         self.max_iter.setValue(300)
-        controls.addRow("每个 K 的最大迭代次数", self.max_iter)
+        controls.addRow("迭代上限", self.max_iter)
         self.seed = QSpinBox()
         self.seed.setRange(0, 2147483647)
         self.seed.setValue(42)
-        controls.addRow("固定随机种子", self.seed)
+        controls.addRow("随机种子", self.seed)
         right = QVBoxLayout()
         right.addLayout(controls)
         self.search_button = QPushButton("执行 K 值扫描")
         self.search_button.setObjectName("primary")
         self.search_button.clicked.connect(self.start_search)
         right.addWidget(self.search_button)
-        s_lay.addLayout(right, 2)
-        root.addWidget(selection)
+        s_lay.addLayout(right)
+        scan_workspace.add_parameters(selection)
 
         self.search_summary = QLabel("SSE 肘部曲线与轮廓系数用于辅助选择 K 值。")
         self.search_summary.setWordWrap(True)
-        root.addWidget(self.search_summary)
+        scan_results.addWidget(self.search_summary)
         self.search_table = QTableView()
         self.search_model = FrameTableModel(self.search_table)
         self.search_table.setModel(self.search_model)
         self.search_table.horizontalHeader().setStretchLastSection(True)
         self.search_table.setMinimumHeight(180)
-        root.addWidget(self.search_table)
+        self.search_tabs = QTabWidget()
+        self.search_tabs.addTab(self.search_table, "扫描结果")
+        scan_results.addWidget(self.search_tabs, 1)
         self.k_canvas = PlotCanvas()
         self.k_canvas.setMinimumHeight(400)
-        root.addWidget(self.k_canvas)
+        self.search_tabs.addTab(self.k_canvas, "K 值曲线")
 
         self.session.data_changed.connect(self.on_data_changed)
         self.session.cluster_changed.connect(self.refresh_cluster_comparison)
@@ -185,6 +196,7 @@ class EvaluationPage(QWidget):
         )
 
     def start_search(self):
+        self.workspace_tabs.setCurrentIndex(1)
         if self.busy:
             return
         try:
@@ -219,9 +231,10 @@ class EvaluationPage(QWidget):
             if result.suggested_k is not None else "当前数据没有可计算的轮廓系数"
         )
         self.search_summary.setText(
-            f"已扫描 {len(result.scores)} 个 K 值；{recommendation}；"
-            f"耗时 {result.elapsed_seconds:.2f} 秒。肘部位置应结合左侧曲线由用户判断。"
+            f"已扫描 {len(result.scores)} 个 K 值 · {recommendation}"
         )
+        self.search_summary.setToolTip(
+            f"耗时 {result.elapsed_seconds:.2f} 秒。推荐来自轮廓系数；肘部位置需结合曲线判断。")
         self._plot_k(result)
         self.session.k_search_changed.emit()
         self.session.results_changed.emit()

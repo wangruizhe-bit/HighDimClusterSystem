@@ -4,7 +4,7 @@
 """
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QFormLayout, QComboBox,
     QSizePolicy, QVBoxLayout, QWidget,
 )
 
@@ -19,6 +19,52 @@ PAGE_HINTS = [
     "比较聚类指标并辅助选择 K 值",
     "浏览、导出并保存当前分析结果",
 ]
+
+
+class AnalysisLayout(QHBoxLayout):
+    """Parameters remain accessible while results occupy the main canvas."""
+
+    def __init__(self, owner):
+        super().__init__(owner)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setSpacing(16)
+        sidebar = QWidget()
+        sidebar.setFixedWidth(280)
+        self.sidebar_layout = QVBoxLayout(sidebar)
+        self.sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        self.sidebar_layout.setSpacing(10)
+        self.parameter_panel = QScrollArea()
+        self.parameter_panel.setObjectName("parameterPanel")
+        self.parameter_panel.setWidgetResizable(True)
+        self.parameter_panel.setFixedWidth(280)
+        self.parameter_panel.setMinimumHeight(400)
+        self.parameter_panel.setFrameShape(QFrame.Shape.NoFrame)
+        self.parameter_panel.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        content = QWidget()
+        self.controls = QVBoxLayout(content)
+        self.controls.setContentsMargins(0, 0, 0, 0)
+        self.controls.setSpacing(12)
+        self.parameter_panel.setWidget(content)
+        self.sidebar_layout.addWidget(self.parameter_panel, 1)
+        self.addWidget(sidebar)
+        results = QWidget()
+        self.results = QVBoxLayout(results)
+        self.results.setContentsMargins(0, 0, 0, 0)
+        self.results.setSpacing(12)
+        self.addWidget(results, 1)
+
+    def add_parameters(self, widget):
+        for combo in widget.findChildren(QComboBox):
+            combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(8)
+        for form in widget.findChildren(QFormLayout):
+            form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        self.controls.addWidget(widget)
+        self.controls.addStretch(1)
+        # Keep the actual execute action visible when long parameters scroll.
+        primary = widget.findChild(QPushButton, "primary")
+        if primary is not None:
+            self.sidebar_layout.addWidget(primary)
 
 
 def studio_label(text, name=None, wrap=True):
@@ -60,34 +106,29 @@ class StudioHeader(QFrame):
     def __init__(self, import_callback, result_callback, parent=None):
         super().__init__(parent)
         self.setObjectName("studioHeader")
-        self.setFixedHeight(112)
+        self.setFixedHeight(56)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(28, 14, 28, 14)
-        layout.setSpacing(18)
+        layout.setContentsMargins(20, 8, 20, 8)
+        layout.setSpacing(12)
 
         mark = QLabel("高维")
         mark.setObjectName("studioMark")
         mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mark.setFixedSize(58, 58)
+        mark.setFixedSize(32, 32)
         layout.addWidget(mark)
 
         brand = QVBoxLayout()
         brand.setSpacing(3)
         self.brand_title = studio_label("高维数据降维与聚类分析系统", "studioBrand", wrap=False)
-        self.brand_title.setMinimumWidth(430)
-        self.brand_subtitle = studio_label("V1.0  ·  High-Dimensional Data Analysis", "studioBrandSub", wrap=False)
+        self.brand_title.setMinimumWidth(300)
         brand.addWidget(self.brand_title)
-        brand.addWidget(self.brand_subtitle)
         layout.addLayout(brand)
         layout.addStretch(1)
 
         context = QFrame()
         context.setObjectName("datasetCapsule")
-        ctx = QVBoxLayout(context)
-        ctx.setContentsMargins(16, 9, 16, 9)
-        ctx.setSpacing(2)
-        self.dataset_caption = studio_label("当前数据集", "datasetEyebrow", wrap=False)
-        ctx.addWidget(self.dataset_caption)
+        ctx = QHBoxLayout(context)
+        ctx.setContentsMargins(12, 5, 12, 5)
         self.dataset_text = ElidedLabel("尚未导入数据", "datasetValue")
         self.dataset_text.setMinimumWidth(150)
         self.dataset_text.setMaximumWidth(330)
@@ -101,8 +142,9 @@ class StudioHeader(QFrame):
         self.import_button.setObjectName("headerPrimary")
         self.import_button.clicked.connect(import_callback)
         layout.addWidget(self.import_button)
-        self.result_button = QPushButton("结果中心  ↗")
+        self.result_button = QPushButton("数据概览")
         self.result_button.setObjectName("headerGhost")
+        self.result_button.setCheckable(True)
         self.result_button.clicked.connect(result_callback)
         layout.addWidget(self.result_button)
 
@@ -120,7 +162,7 @@ class StudioHeader(QFrame):
         super().resizeEvent(event)
         # Keep the full application title and actions readable at minimum width.
         compact = self.width() < 1400
-        self.layout().setContentsMargins(18 if compact else 28, 14, 18 if compact else 28, 14)
+        self.layout().setContentsMargins(16 if compact else 20, 8, 16 if compact else 20, 8)
         self.layout().setSpacing(10 if compact else 18)
         self.dataset_text.setMaximumWidth(180 if compact else 330)
 
@@ -131,13 +173,13 @@ class ModeStrip(QFrame):
     def __init__(self, page_names, change_callback, parent=None):
         super().__init__(parent)
         self.setObjectName("modeStrip")
-        self.setFixedHeight(82)
+        self.setFixedHeight(44)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(24, 9, 24, 9)
-        layout.setSpacing(8)
+        layout.setContentsMargins(20, 2, 20, 2)
+        layout.setSpacing(6)
         self.buttons = []
         for index, title in enumerate(page_names):
-            button = QPushButton(f"{index + 1:02d}\n{title}")
+            button = QPushButton(title)
             button.setObjectName("modeButton")
             button.setProperty("active", False)
             button.setCheckable(True)
@@ -162,17 +204,11 @@ class PageBanner(QFrame):
         super().__init__(parent)
         self.setObjectName("pageBanner")
         row = QHBoxLayout(self)
-        row.setContentsMargins(0, 2, 0, 16)
+        row.setContentsMargins(0, 0, 0, 4)
         row.setSpacing(16)
-        code = QLabel(f"{index + 1:02d}")
-        code.setObjectName("pageCode")
-        code.setFixedWidth(52)
-        row.addWidget(code)
-        text = QVBoxLayout()
-        text.setSpacing(2)
-        text.addWidget(studio_label(title, "pageTitle"))
-        text.addWidget(studio_label(PAGE_HINTS[index], "pageHint"))
-        row.addLayout(text, 1)
+        heading = studio_label(title, "pageTitle", wrap=False)
+        heading.setToolTip(PAGE_HINTS[index])
+        row.addWidget(heading, 1)
 
 
 class MetricTile(QFrame):
@@ -181,18 +217,17 @@ class MetricTile(QFrame):
         self.setObjectName("metricTile")
         self.setProperty("accent", accent)
         box = QVBoxLayout(self)
-        box.setContentsMargins(20, 18, 20, 18)
-        box.setSpacing(7)
+        box.setContentsMargins(16, 10, 16, 10)
+        box.setSpacing(3)
         box.addWidget(studio_label(caption, "metricCaption"))
         self.value_label = studio_label(value, "metricValue")
         box.addWidget(self.value_label)
-        self.foot_label = studio_label(foot, "metricFoot")
-        box.addWidget(self.foot_label)
+        self.setToolTip(foot)
 
     def set_value(self, value, foot=None):
         self.value_label.setText(str(value))
         if foot is not None:
-            self.foot_label.setText(str(foot))
+            self.setToolTip(str(foot))
 
 
 class PipelineStep(QFrame):

@@ -2,9 +2,11 @@
 
 High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
-> 发布候选版本：程序保留全部本地分析功能，不依赖在线服务。本次 Linux 验证通过 116 项测试；当前代码的 Windows 11、125% DPI 和 EXE 验收待实机执行，历史工作流结果不代表当前提交已验收。
+> 发布候选版本：程序保留全部本地分析功能，不依赖在线服务。本次 Linux 验证通过 127 项测试；当前代码的 Windows 11、125% DPI 和 EXE 验收待实机执行，历史工作流结果不代表当前提交已验收。
 
 本次修改、算法审查结果和验证边界见 [发布候选审查记录](docs/发布候选审查记录.md)。
+界面已改为紧凑工作区：顶部仅保留一行标题和一行导航，右侧概览默认收起；数据表格和图表占据主要空间。见 [界面工作区调整](docs/界面工作区调整.md)。
+
 Windows 11 实机操作见 [Windows 11 发布验收](docs/Windows11发布验收.md)。
 
 ## Windows 发行包（DLL 缺失问题已修复）

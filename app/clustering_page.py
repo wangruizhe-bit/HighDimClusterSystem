@@ -10,6 +10,7 @@ from scipy.cluster.hierarchy import dendrogram
 
 from app.plot_canvas import PlotCanvas, StaticPlotCanvas
 from app.table_model import FrameTableModel
+from app.studio_components import AnalysisLayout
 from core.clustering import ALGORITHMS, fit_clustering
 
 
@@ -42,19 +43,20 @@ class ClusterPage(QWidget):
         self.busy = False
         self._submitted_revision = -1
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
+        workspace = AnalysisLayout(self)
+        self.parameter_panel = workspace.parameter_panel
+        root = workspace.results
         root.setSpacing(14)
 
         options = QGroupBox("聚类算法与特征选择")
-        horizontal = QHBoxLayout(options)
+        horizontal = QVBoxLayout(options)
         variable_layout = QVBoxLayout()
-        variable_layout.addWidget(QLabel("选择数值变量（不选择默认全部数值变量）"))
+        variable_layout.addWidget(QLabel("变量 · 默认全部"))
         self.variables = QListWidget()
         self.variables.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.variables.setMaximumHeight(195)
+        self.variables.setMaximumHeight(115)
         variable_layout.addWidget(self.variables)
-        horizontal.addLayout(variable_layout, 3)
+        horizontal.addLayout(variable_layout)
 
         right = QVBoxLayout()
         general = QFormLayout()
@@ -125,8 +127,8 @@ class ClusterPage(QWidget):
         self.run_button.setObjectName("primary")
         self.run_button.clicked.connect(self.start_analysis)
         right.addWidget(self.run_button)
-        horizontal.addLayout(right, 2)
-        root.addWidget(options)
+        horizontal.addLayout(right)
+        workspace.add_parameters(options)
 
         self.summary = QLabel("请先导入数据。")
         self.summary.setWordWrap(True)
@@ -160,7 +162,7 @@ class ClusterPage(QWidget):
         ]:
             canvas.setMinimumHeight(360)
             self.tabs.addTab(canvas, name)
-        root.addWidget(self.tabs)
+        root.addWidget(self.tabs, 1)
 
         self.notes = QLabel("PCA 投影仅用于绘图；DBSCAN 中 -1 表示噪声，不计入有效簇。")
         self.notes.setWordWrap(True)
@@ -241,11 +243,12 @@ class ClusterPage(QWidget):
         if len(self.session.cluster_results) > self.MAX_HISTORY:
             del self.session.cluster_results[:-self.MAX_HISTORY]
         self.summary.setText(
-            f"已完成 {result.label}：{result.n_samples} 行样本，"
-            f"{len(result.columns)} 个特征，识别 {result.n_clusters} 个有效簇、"
-            f"{result.n_noise} 个噪声点；{'已标准化' if result.standardized else '未标准化'}；"
-            f"计算 {result.elapsed_seconds:.3f} 秒。\n{result.score_note}"
+            f"{result.label} · {result.n_samples} 个样本 · {result.n_clusters} 个簇 · "
+            f"噪声 {result.n_noise} · {result.elapsed_seconds:.2f} 秒"
+            + (" · 评价不含噪声" if result.algorithm == "dbscan" else "")
         )
+        self.summary.setToolTip(result.score_note +
+            ("\n已标准化" if result.standardized else "\n未标准化"))
         for key in ("labels", "counts", "cluster_profile", "centers"):
             self.models[key].set_frame(getattr(result, key))
         definitions = {

@@ -37,14 +37,14 @@ def _assert_home_bottom_reachable(app, window):
     app.processEvents()
     assert bar.value() == bar.maximum()
 
-    last = window.home_capability_rows[-1]
+    last = window.home_dataset_hint
     bottom = last.mapTo(scroll.viewport(), QPoint(0, last.height())).y()
     remaining = scroll.viewport().height() - bottom
     assert remaining >= 20, (
         f"首页最后一行底部仅剩 {remaining}px；滚动到底后应至少保留 20px 空白。"
     )
 
-    pipeline_last = window.home_pipeline_steps[-1]
+    pipeline_last = window.home_preview
     pipeline_bottom = pipeline_last.mapTo(
         scroll.viewport(), QPoint(0, pipeline_last.height())
     ).y()
@@ -63,22 +63,30 @@ def test_home_bottom_is_fully_reachable_in_required_windows():
 
 def test_workspace_dominates_right_rail_at_default_width():
     app, window = _window(1600, 940)
-    rail = window.data_lens.width()
     workspace = window.stack.width()
-    ratio = workspace / (workspace + rail)
-    assert 245 <= rail <= 285
-    assert 0.80 <= ratio <= 0.84
+    assert not window.data_lens.isVisible()
+    assert workspace / window.centralWidget().width() >= .98
+    window.studio_header.result_button.click()
+    app.processEvents()
+    assert window.data_lens.isVisible()
+    assert 245 <= window.data_lens.width() <= 285
+    assert window.stack.width() < workspace
+    window.studio_header.result_button.click()
+    app.processEvents()
+    assert window.stack.width() == workspace
     window.close()
     app.processEvents()
 
 
 def test_home_pipeline_is_primary_column():
     app, window = _window(1600, 940)
-    total = window.home_pipeline.width() + window.home_capability.width()
-    pipeline_ratio = window.home_pipeline.width() / total
-    assert 0.64 <= pipeline_ratio <= 0.69
-    assert all(step.height() >= 72 for step in window.home_pipeline_steps)
-    assert all(row.height() >= 54 for row in window.home_capability_rows)
+    assert len(window.home_pipeline_steps) == 4
+    assert window.home_preview.height() >= 280
+    assert window.home_preview_model.rowCount() == 90
+    for step, target in zip(window.home_pipeline_steps, (3, 4, 5, 6)):
+        assert step.width() >= window.home_pipeline.width() * .20
+        step.click()
+        assert window.stack.currentIndex() == target
     window.close()
     app.processEvents()
 
@@ -89,6 +97,7 @@ def test_analysis_pages_receive_wider_workspace():
         window.goto(index)
         app.processEvents()
         scroll = window.stack.currentWidget()
-        assert scroll.viewport().width() >= 1200
+        assert scroll.viewport().width() >= 1550
+        assert scroll.viewport().height() >= window.height() * .85
     window.close()
     app.processEvents()

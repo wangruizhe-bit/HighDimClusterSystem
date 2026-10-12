@@ -28,7 +28,8 @@ def test_third_app_uses_unique_data_studio_shell():
     xs = [button.mapTo(window, button.rect().topLeft()).x() for button in window.nav_buttons]
     assert max(ys) - min(ys) < 8
     assert xs == sorted(xs)
-    assert window.data_lens.x() > window.stack.x()
+    assert not window.data_lens.isVisible()
+    assert window.stack.width() >= window.centralWidget().width() * .98
 
     # 第二个软件使用顶部模块下拉选择器；第三个软件不应出现同名模块选择器。
     selectors = window.findChildren(QComboBox)
@@ -79,7 +80,8 @@ def test_readable_typography_and_chinese_copy():
     assert window.studio_header.dataset_text.fontMetrics().height() >= 13
     assert "高维数据降维与聚类分析系统" in window.windowTitle()
     assert window.studio_header.brand_title.text() == "高维数据降维与聚类分析系统"
-    assert window.studio_header.dataset_caption.text() == "当前数据集"
+    assert window.studio_header.dataset_context.height() <= 40
+    assert window.studio_header.height() + window.mode_strip.height() <= 104
     assert window.data_lens.title_label.text() == "数据概览"
 
     banned = {
@@ -112,13 +114,14 @@ def test_125_percent_equivalent_workspace_keeps_key_controls_visible():
     app.processEvents()
 
     assert window.stack.width() >= 900
-    assert 245 <= window.data_lens.width() <= 285
+    assert not window.data_lens.isVisible()
+    assert window.stack.width() >= 1500
     for index in range(8):
         window.goto(index)
         app.processEvents()
         assert window.stack.currentIndex() == index
     for button in window.nav_buttons:
-        assert button.height() >= 55
+        assert 32 <= button.height() <= 40
         assert button.width() >= 95
 
     window.close()
@@ -150,6 +153,7 @@ def test_125_percent_right_rail_blocks_do_not_overlap():
     window.resize(1536, 864)
     window.show()
     window.load_demo_data()
+    window.studio_header.result_button.click()
     app.processEvents()
 
     # 顶部品牌应保持单行。

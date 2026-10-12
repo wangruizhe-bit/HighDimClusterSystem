@@ -20,7 +20,15 @@ def main():
     if not args:
         raise SystemExit("usage: python -m tools.run_with_logs COMMAND [ARGS...]")
     print("RUN:", " ".join(args), flush=True)
-    completed = subprocess.run(args, check=False)
+    completed = subprocess.run(
+        args, check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, errors="replace",
+    )
+    print(completed.stdout, flush=True)
+    if completed.returncode and os.environ.get("GITHUB_ACTIONS") == "true":
+        details = completed.stdout[-12000:]
+        details = details.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+        print(f"::error title=Command failed::exit={completed.returncode}%0A{details}", flush=True)
     directory = _log_dir()
     print(f"DIAGNOSTIC LOG DIRECTORY: {directory}", flush=True)
     for name in ("crash.log", "fatal.log"):

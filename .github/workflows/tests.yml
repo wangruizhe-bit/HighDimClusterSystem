@@ -32,7 +32,7 @@ jobs:
       - name: Verify application entrypoint
         run: python main.py --self-check
       - name: Run unit and GUI smoke tests
-        run: python -m pytest -q --ignore=tests/test_pca_gui_rendering.py
+        run: python -m tools.run_with_logs python -m pytest -q --ignore=tests/test_pca_gui_rendering.py
       - name: Run native Windows PCA QtAgg GUI regression
         if: runner.os == 'Windows'
         env:

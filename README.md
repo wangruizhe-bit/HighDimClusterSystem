@@ -2,12 +2,20 @@
 
 High-dimensional Data Dimensionality Reduction and Clustering Analysis System
 
-> 发布候选版本：程序保留全部本地分析功能，不依赖在线服务。本次 Linux 验证通过 127 项测试；当前代码的 Windows 11、125% DPI 和 EXE 验收待实机执行，历史工作流结果不代表当前提交已验收。
+> 发布候选版本：程序保留全部本地分析功能，不依赖在线服务。本次 Linux 验证通过 127 项测试；新版 Windows EXE 已在 CI 完成打包、启动、绘图与 DLL 校验；Windows 11 实机和系统 125% DPI 仍待用户验证。
 
 本次修改、算法审查结果和验证边界见 [发布候选审查记录](docs/发布候选审查记录.md)。
 界面已改为紧凑工作区：顶部仅保留一行标题和一行导航，右侧概览默认收起；数据表格和图表占据主要空间。见 [界面工作区调整](docs/界面工作区调整.md)。
 
 Windows 11 实机操作见 [Windows 11 发布验收](docs/Windows11发布验收.md)。
+
+## 新版界面 Windows 运行包
+
+[下载新版 EXE 完整包](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/38273922433/artifacts/11758681611)。解压整个 ZIP，双击 `HighDimClusterSystem.exe`；保留同目录 `_internal`，无需安装 Python。
+
+[Windows 打包与附件校验：成功](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/38273922433) · [Windows/Linux 测试：成功](https://github.com/wangruizhe-bit/HighDimClusterSystem/actions/runs/38275879622)。
+
+以下为历史发行记录，不代表新版下载链接。
 
 ## Windows 发行包（DLL 缺失问题已修复）
 
